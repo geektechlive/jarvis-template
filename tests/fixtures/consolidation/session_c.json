@@ -1,0 +1,6 @@
+[
+  {"role": "user", "content": "I used to prefer Tailwind but now I don't want it"},
+  {"role": "assistant", "content": "Got it — switching to custom CSS going forward."},
+  {"role": "user", "content": "What is the capital of France?"},
+  {"role": "assistant", "content": "Paris."}
+]

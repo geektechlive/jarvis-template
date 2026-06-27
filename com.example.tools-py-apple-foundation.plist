@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent for the Jarvis apple-foundation tool server — installs to:
+    ~/Library/LaunchAgents/com.example.tools-py-apple-foundation.plist
+
+  Serves http://127.0.0.1:9878 (/health, /generate, /generate_typed).
+  Fronts the `afm` Swift helper (on-device Apple Foundation Models). No API key
+  needed — inference is on-device and free. Build the afm binary first:
+    cd tools-py/apple-foundation && swift build -c release
+
+  Install:
+    cp com.example.tools-py-apple-foundation.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.example.tools-py-apple-foundation.plist
+
+  Status:  launchctl list | grep tools-py-apple-foundation
+  Logs:    tail -f ~/Jarvis/logs/apple-foundation.error.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.example.tools-py-apple-foundation</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/<username>/Jarvis/.venv/bin/python</string>
+        <string>tools-py/apple-foundation/server.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/<username>/Jarvis</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/<username></string>
+        <key>AFM_PORT</key>
+        <string>9878</string>
+        <key>AFM_BIN</key>
+        <string>/Users/<username>/Jarvis/tools-py/apple-foundation/.build/release/afm</string>
+        <key>AFM_LOG</key>
+        <string>/Users/<username>/Jarvis/logs/apple-foundation.afm.log</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/<username>/Jarvis/logs/apple-foundation.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/<username>/Jarvis/logs/apple-foundation.error.log</string>
+</dict>
+</plist>

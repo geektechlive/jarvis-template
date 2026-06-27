@@ -1,0 +1,8 @@
+[
+  {"role": "user", "content": "I need to upgrade the <your-org> site to Astro 5"},
+  {"role": "assistant", "content": "I can help you migrate to Astro 5. The main changes involve content collections and the new config format."},
+  {"role": "user", "content": "I prefer using custom CSS over Tailwind for everything"},
+  {"role": "assistant", "content": "Noted. I'll use plain CSS with custom properties throughout."},
+  {"role": "user", "content": "Let's use nomic-embed-text for all embeddings on the Mini"},
+  {"role": "assistant", "content": "Good choice — nomic-embed-text is fast on M1 and free."}
+]

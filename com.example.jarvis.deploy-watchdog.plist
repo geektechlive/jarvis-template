@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.example.jarvis.deploy-watchdog</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/<username>/Jarvis/scripts/deploy-watchdog.sh</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/Users/<username>/bin:/Users/<username>/.local/bin</string>
+        <key>HOME</key>
+        <string>/Users/<username></string>
+    </dict>
+
+    <!-- Check for new commits every 10 minutes. -->
+    <key>StartInterval</key>
+    <integer>600</integer>
+
+    <!-- Do not deploy immediately on bootstrap — the SHA file is seeded by
+         install-watchdog so the first scheduled tick is a no-op unless new
+         commits have already arrived. -->
+    <key>RunAtLoad</key>
+    <false/>
+
+    <key>StandardOutPath</key>
+    <string>/Users/<username>/Jarvis/logs/deploy-watchdog.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/<username>/Jarvis/logs/deploy-watchdog.log</string>
+</dict>
+</plist>

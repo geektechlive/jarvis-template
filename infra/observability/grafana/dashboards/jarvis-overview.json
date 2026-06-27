@@ -1,0 +1,1009 @@
+{
+  "uid": "jarvis-overview",
+  "title": "Jarvis \u2014 Overview",
+  "tags": [
+    "jarvis",
+    "observability",
+    "overview"
+  ],
+  "timezone": "browser",
+  "style": "dark",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Errors (last 1h)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 1
+              },
+              {
+                "color": "#ef4444",
+                "value": 25
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "View errors in Logs Explorer",
+              "url": "/d/jarvis-logs/jarvis-logs?var-level=error|critical|fatal&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "legendFormat": "errors",
+          "expr": "sum(count_over_time({service=~\".+\"} | level=~\"error|critical|fatal\" [5m]))"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Warnings (last 1h)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 5,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 1
+              },
+              {
+                "color": "#ef4444",
+                "value": 50
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "View warnings in Logs Explorer",
+              "url": "/d/jarvis-logs/jarvis-logs?var-level=warn|warning&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "legendFormat": "warnings",
+          "expr": "sum(count_over_time({service=~\".+\"} | level=~\"warn|warning\" [5m]))"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Cost (last 24h)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 10,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#22d3ee"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "legendFormat": "cost",
+          "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_costUsd [30m]))"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Runs (last 24h)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 5,
+        "x": 15,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#60a5fa"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "legendFormat": "runs",
+          "expr": "sum(count_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} [30m]))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Services down / degraded",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 4,
+        "x": 20,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 1
+              },
+              {
+                "color": "#ef4444",
+                "value": 2
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT COUNT(*) AS down FROM (SELECT service, status, MAX(ts) FROM host_health WHERE julianday(ts) > julianday('now','-10 minutes') GROUP BY service) WHERE status != 'ok'",
+          "queryText": "SELECT COUNT(*) AS down FROM (SELECT service, status, MAX(ts) FROM host_health WHERE julianday(ts) > julianday('now','-10 minutes') GROUP BY service) WHERE status != 'ok'"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "state-timeline",
+      "title": "Service health over time",
+      "description": "Per-service health bands from host_health probes (every ~1m). Green = ok, yellow = warn, red = down. The single best at-a-glance health view.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 16,
+        "x": 0,
+        "y": 5
+      },
+      "options": {
+        "showValue": "never",
+        "alignValue": "left",
+        "mergeValues": true,
+        "rowHeight": 0.9,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0
+          },
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "ok",
+                  "color": "#4ade80",
+                  "index": 0
+                },
+                "2": {
+                  "text": "warn",
+                  "color": "#fbbf24",
+                  "index": 1
+                },
+                "3": {
+                  "text": "down",
+                  "color": "#ef4444",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 2
+              },
+              {
+                "color": "#ef4444",
+                "value": 3
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "rawQueryText": "SELECT CAST(strftime('%s',replace(ts,'Z','')) AS INTEGER) AS time, service, CASE status WHEN 'ok' THEN 1 WHEN 'warn' THEN 2 ELSE 3 END AS state FROM host_health WHERE julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY ts",
+          "queryText": "SELECT CAST(strftime('%s',replace(ts,'Z','')) AS INTEGER) AS time, service, CASE status WHEN 'ok' THEN 1 WHEN 'warn' THEN 2 ELSE 3 END AS state FROM host_health WHERE julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY ts"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "bargauge",
+      "title": "Service status (current)",
+      "description": "Latest probe per service. Fallback / companion to the state-timeline for instant current state.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 16,
+        "y": 5
+      },
+      "options": {
+        "orientation": "horizontal",
+        "displayMode": "lcd",
+        "valueMode": "color",
+        "showUnfilled": true,
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^state$/"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 3,
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "1": {
+                  "text": "ok",
+                  "color": "#4ade80",
+                  "index": 0
+                },
+                "2": {
+                  "text": "warn",
+                  "color": "#fbbf24",
+                  "index": 1
+                },
+                "3": {
+                  "text": "down",
+                  "color": "#ef4444",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 2
+              },
+              {
+                "color": "#ef4444",
+                "value": 3
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT service, CASE status WHEN 'ok' THEN 1 WHEN 'warn' THEN 2 ELSE 3 END AS state FROM (SELECT service, status, MAX(ts) FROM host_health WHERE julianday(ts) > julianday('now','-10 minutes') GROUP BY service) ORDER BY state DESC, service",
+          "queryText": "SELECT service, CASE status WHEN 'ok' THEN 1 WHEN 'warn' THEN 2 ELSE 3 END AS state FROM (SELECT service, status, MAX(ts) FROM host_health WHERE julianday(ts) > julianday('now','-10 minutes') GROUP BY service) ORDER BY state DESC, service"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Errors & warnings by service (per 5m)",
+      "description": "Errors and warnings overlaid so low error rate is visible alongside warning noise.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 16,
+        "x": 0,
+        "y": 15
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 45,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          },
+          "links": [
+            {
+              "title": "View this service's lines",
+              "url": "/d/jarvis-logs/jarvis-logs?var-service=${__field.labels.service}&var-level=error|critical|fatal|warn|warning&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "warn"
+            },
+            "properties": [
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 10
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#fbbf24"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "err",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "legendFormat": "err: {{service}}",
+          "expr": "sum by (service) (count_over_time({service=~\".+\"} | level=~\"error|critical|fatal\" [5m]))"
+        },
+        {
+          "refId": "warn",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "legendFormat": "warnings (all)",
+          "expr": "sum(count_over_time({service=~\".+\"} | level=~\"warn|warning\" [5m]))"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "piechart",
+      "title": "Cost by model (last 24h)",
+      "description": "Correlation: which model is driving spend. Splits on payload_model.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 15
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "pieType": "donut",
+        "displayLabels": [
+          "name",
+          "percent"
+        ],
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "values": [
+            "value"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "decimals": 4,
+          "color": {
+            "mode": "palette-classic"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "legendFormat": "{{payload_model}}",
+          "expr": "sum by (payload_model) (sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_costUsd [24h]))"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Cost trend & cost-per-turn",
+      "description": "Correlation: spend over time (bars, left axis) vs efficiency \u2014 cost per turn (line, right axis). Rising cost-per-turn means runs are getting more expensive even if total volume is flat.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "cost"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 4
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "bars"
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 50
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#22d3ee"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "cpt"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "currencyUSD"
+              },
+              {
+                "id": "decimals",
+                "value": 4
+              },
+              {
+                "id": "custom.drawStyle",
+                "value": "line"
+              },
+              {
+                "id": "custom.lineWidth",
+                "value": 2
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 0
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#a78bfa"
+                }
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "cost",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "legendFormat": "cost / interval",
+          "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_costUsd [$__interval]))"
+        },
+        {
+          "refId": "cpt",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "legendFormat": "cost per turn",
+          "expr": "sum(sum_over_time({service=\"ion-telemetry\",kind=\"run.complete\"} | json | unwrap payload_costUsd [$__interval])) / sum(sum_over_time({service=\"ion-telemetry\",kind=\"run.complete\"} | json | unwrap payload_numTurns [$__interval]))"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Latency by phase (perf_metrics)",
+      "description": "Per-phase latency from perf_metrics (e.g. recall). Surfaces perf regressions independent of error counts.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "points",
+            "pointSize": 6,
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "always"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "rawQueryText": "SELECT CAST(strftime('%s',replace(created_at,'Z','')) AS INTEGER) AS time, phase, latency_ms FROM perf_metrics WHERE julianday(created_at) >= julianday($__from/1000,'unixepoch') AND julianday(created_at) < julianday($__to/1000,'unixepoch') ORDER BY created_at",
+          "queryText": "SELECT CAST(strftime('%s',replace(created_at,'Z','')) AS INTEGER) AS time, phase, latency_ms FROM perf_metrics WHERE julianday(created_at) >= julianday($__from/1000,'unixepoch') AND julianday(created_at) < julianday($__to/1000,'unixepoch') ORDER BY created_at"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "logs",
+      "title": "Recent errors & warnings (live)",
+      "description": "Compact live tail of errors + warnings + critical only, across all services.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "links": [
+        {
+          "title": "Open in Logs Explorer",
+          "url": "/d/jarvis-logs/jarvis-logs?var-level=error|critical|fatal|warn|warning&${__url_time_range}",
+          "targetBlank": false
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending",
+        "showLabels": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "{service=~\".+\"} | level=~\"error|warning|critical\""
+        }
+      ]
+    }
+  ],
+  "links": [
+    {
+      "type": "link",
+      "title": "Errors & Health",
+      "icon": "external link",
+      "tooltip": "",
+      "url": "/d/jarvis-errors-health",
+      "targetBlank": false,
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Host Metrics",
+      "icon": "external link",
+      "tooltip": "",
+      "url": "/d/jarvis-host-metrics",
+      "targetBlank": false,
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Memory",
+      "icon": "external link",
+      "tooltip": "",
+      "url": "/d/jarvis-memory",
+      "targetBlank": false,
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Turn Latency",
+      "icon": "external link",
+      "tooltip": "",
+      "url": "/d/jarvis-turn-latency",
+      "targetBlank": false,
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Goals",
+      "icon": "external link",
+      "tooltip": "",
+      "url": "/d/jarvis-goals",
+      "targetBlank": false,
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Routines & Approvals",
+      "icon": "external link",
+      "tooltip": "",
+      "url": "/d/jarvis-routines-approvals",
+      "targetBlank": false,
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Telemetry & Cost",
+      "icon": "external link",
+      "tooltip": "",
+      "url": "/d/jarvis-telemetry",
+      "targetBlank": false,
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Issues & Resolver",
+      "icon": "external link",
+      "tooltip": "",
+      "url": "/d/jarvis-issues",
+      "targetBlank": false,
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "Logs",
+      "icon": "external link",
+      "tooltip": "",
+      "url": "/d/jarvis-logs",
+      "targetBlank": false,
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true
+    },
+    {
+      "type": "link",
+      "title": "System Map",
+      "icon": "external link",
+      "tooltip": "",
+      "url": "/d/jarvis-system-map",
+      "targetBlank": false,
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true
+    }
+  ]
+}

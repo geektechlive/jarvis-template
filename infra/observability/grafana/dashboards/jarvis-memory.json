@@ -1,0 +1,950 @@
+{
+  "uid": "jarvis-memory",
+  "title": "Jarvis \u2014 Memory",
+  "tags": [
+    "jarvis",
+    "observability",
+    "memory"
+  ],
+  "timezone": "browser",
+  "style": "dark",
+  "schemaVersion": 39,
+  "version": 3,
+  "refresh": "1m",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Memory writes (24h)",
+      "description": "learning_complete events in the last 24h, with a sparkline of the hourly trend.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "sum"
+          ],
+          "fields": "/^writes$/"
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#22d3ee"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "rawQueryText": "SELECT CAST(strftime('%s', strftime('%Y-%m-%d %H:00:00', ts)) AS INTEGER) AS time, COUNT(*) AS writes FROM agent_events WHERE event = 'learning_complete' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time",
+          "queryText": "SELECT CAST(strftime('%s', strftime('%Y-%m-%d %H:00:00', ts)) AS INTEGER) AS time, COUNT(*) AS writes FROM agent_events WHERE event = 'learning_complete' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Recall failures (24h)",
+      "description": "memory_recall_failed + memory_recall_degraded + memory_graph_recall_failed in the last 24h. Green when clean, red when failures accumulate.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^failures$/"
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 1
+              },
+              {
+                "color": "#ef4444",
+                "value": 25
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT COUNT(*) AS failures FROM agent_events WHERE event IN ('memory_recall_failed','memory_recall_degraded','memory_graph_recall_failed') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')",
+          "queryText": "SELECT COUNT(*) AS failures FROM agent_events WHERE event IN ('memory_recall_failed','memory_recall_degraded','memory_graph_recall_failed') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "piechart",
+      "title": "Memory event mix (24h)",
+      "description": "Distribution of memory-related events over the last 24h: writes (learning_complete), recall hits, and the three recall-failure types. Shows whether memory activity is healthy reads/writes or dominated by failures.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "learning_complete"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#22d3ee"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "recall_hit"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#4ade80"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "memory_recall_degraded"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#fbbf24"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "memory_recall_failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#ef4444"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "memory_graph_recall_failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#a78bfa"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT SUM(event='learning_complete') AS learning_complete, SUM(event='recall_hit') AS recall_hit, SUM(event='memory_recall_degraded') AS memory_recall_degraded, SUM(event='memory_recall_failed') AS memory_recall_failed, SUM(event='memory_graph_recall_failed') AS memory_graph_recall_failed FROM agent_events WHERE event IN ('learning_complete','recall_hit','memory_recall_degraded','memory_recall_failed','memory_graph_recall_failed') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')",
+          "queryText": "SELECT SUM(event='learning_complete') AS learning_complete, SUM(event='recall_hit') AS recall_hit, SUM(event='memory_recall_degraded') AS memory_recall_degraded, SUM(event='memory_recall_failed') AS memory_recall_failed, SUM(event='memory_graph_recall_failed') AS memory_graph_recall_failed FROM agent_events WHERE event IN ('learning_complete','recall_hit','memory_recall_degraded','memory_recall_failed','memory_graph_recall_failed') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Memory write-rate vs recall failures (per hour, 24h)",
+      "description": "Hourly trend correlating memory writes (learning_complete) against recall failures and degraded recalls. When failures spike alongside or instead of writes, recall health is degrading. This is the core memory-health correlation.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "auto",
+            "stacking": {
+              "mode": "none"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "writes"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#22d3ee"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "recall_hits"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#4ade80"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failures"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#ef4444"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 30
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "rawQueryText": "SELECT CAST(strftime('%s', strftime('%Y-%m-%d %H:00:00', ts)) AS INTEGER) AS time, SUM(event='learning_complete') AS writes, SUM(event='recall_hit') AS recall_hits, SUM(event IN ('memory_recall_failed','memory_recall_degraded','memory_graph_recall_failed')) AS failures FROM agent_events WHERE event IN ('learning_complete','recall_hit','memory_recall_failed','memory_recall_degraded','memory_graph_recall_failed') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time",
+          "queryText": "SELECT CAST(strftime('%s', strftime('%Y-%m-%d %H:00:00', ts)) AS INTEGER) AS time, SUM(event='learning_complete') AS writes, SUM(event='recall_hit') AS recall_hits, SUM(event IN ('memory_recall_failed','memory_recall_degraded','memory_graph_recall_failed')) AS failures FROM agent_events WHERE event IN ('learning_complete','recall_hit','memory_recall_failed','memory_recall_degraded','memory_graph_recall_failed') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "barchart",
+      "title": "Memory activity by hour-of-day (7d)",
+      "description": "When memory reads/writes happen across the day. Writes (learning_complete) and recall hits bucketed by local hour-of-day over the last 7 days. Surfaces overnight reflection/consolidation windows vs interactive daytime activity.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 12
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 1
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "writes"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#22d3ee"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "recall_hits"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#4ade80"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "orientation": "vertical",
+        "stacking": "normal",
+        "xField": "hour",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "showValue": "never"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT CAST(strftime('%H', ts) AS INTEGER) AS hour, SUM(event='learning_complete') AS writes, SUM(event='recall_hit') AS recall_hits FROM agent_events WHERE event IN ('learning_complete','recall_hit') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY hour ORDER BY hour",
+          "queryText": "SELECT CAST(strftime('%H', ts) AS INTEGER) AS hour, SUM(event='learning_complete') AS writes, SUM(event='recall_hit') AS recall_hits FROM agent_events WHERE event IN ('learning_complete','recall_hit') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY hour ORDER BY hour"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Working memory (active entries)",
+      "description": "Current working_memory entries that have not expired. Detail view \u2014 working memory is intentionally small and short-lived.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 21
+      },
+      "fieldConfig": {
+        "defaults": {}
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT written_at, written_by, content, expires_at FROM working_memory WHERE expires_at IS NULL OR julianday(expires_at) > julianday('now') ORDER BY written_at DESC LIMIT 50",
+          "queryText": "SELECT written_at, written_by, content, expires_at FROM working_memory WHERE expires_at IS NULL OR julianday(expires_at) > julianday('now') ORDER BY written_at DESC LIMIT 50"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Dangling-active rows (live)",
+      "description": "memory_dangling_active from /integrity: active memories_meta rows with no live vector. Guards #803/#822 -- must stay 0; a non-zero value means a delete path is again leaving meta rows without vectors.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 30
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/"
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#ef4444",
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT value AS \"dangling\" FROM host_metrics WHERE metric='memory_dangling_active' ORDER BY ts DESC LIMIT 1",
+          "queryText": "SELECT value AS \"dangling\" FROM host_metrics WHERE metric='memory_dangling_active' ORDER BY ts DESC LIMIT 1"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "FTS coverage % (live)",
+      "description": "memory_fts_coverage_pct: memories_fts rows / live vectors. Should track 100; a drop means FTS writes are being skipped (#804). Currently ~53% -- the open FTS gap.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 6,
+        "y": 30
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/.*/"
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#ef4444",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 80
+              },
+              {
+                "color": "#4ade80",
+                "value": 95
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT value AS \"coverage\" FROM host_metrics WHERE metric='memory_fts_coverage_pct' ORDER BY ts DESC LIMIT 1",
+          "queryText": "SELECT value AS \"coverage\" FROM host_metrics WHERE metric='memory_fts_coverage_pct' ORDER BY ts DESC LIMIT 1"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Memory integrity: active_meta vs live_vectors vs dangling",
+      "description": "The invariant the supersede/TTL fix guards. active_meta should equal live_vectors; dangling should be flat at 0. Divergence = a regression in the delete/supersede path.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 30
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 8,
+            "lineWidth": 2,
+            "showPoints": "never"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "active_meta"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#22d3ee"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "live_vectors"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#4ade80"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "dangling_active"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#ef4444"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 30
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "act",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "rawQueryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, value AS \"active_meta\" FROM host_metrics WHERE metric='memory_active_meta' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time",
+          "queryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, value AS \"active_meta\" FROM host_metrics WHERE metric='memory_active_meta' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time"
+        },
+        {
+          "refId": "liv",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "rawQueryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, value AS \"live_vectors\" FROM host_metrics WHERE metric='memory_live_vectors' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time",
+          "queryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, value AS \"live_vectors\" FROM host_metrics WHERE metric='memory_live_vectors' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time"
+        },
+        {
+          "refId": "dan",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "rawQueryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, value AS \"dangling_active\" FROM host_metrics WHERE metric='memory_dangling_active' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time",
+          "queryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, value AS \"dangling_active\" FROM host_metrics WHERE metric='memory_dangling_active' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "FTS coverage % (trend)",
+      "description": "memory_fts_coverage_pct over time. Target 100. Sustained <90 means the FTS index is drifting out of sync with live vectors (#804).",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 36
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#a78bfa"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#ef4444",
+                "value": null
+              },
+              {
+                "color": "#4ade80",
+                "value": 95
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "refId": "fts",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "rawQueryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, value AS \"fts_coverage_pct\" FROM host_metrics WHERE metric='memory_fts_coverage_pct' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time",
+          "queryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, value AS \"fts_coverage_pct\" FROM host_metrics WHERE metric='memory_fts_coverage_pct' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "Graph recall: success vs failed (per hour)",
+      "description": "memory_graph_recall_success vs memory_graph_recall_failed (#811b/d). The success event is the denominator that makes the graph-recall failure RATE measurable -- without it the audit's first-pass 'Graphiti is dead' read was wrong.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 36
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 12,
+            "lineWidth": 2,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "success"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#4ade80"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "failed"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#ef4444"
+                }
+              },
+              {
+                "id": "custom.fillOpacity",
+                "value": 30
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "rawQueryText": "SELECT CAST(strftime('%s', strftime('%Y-%m-%d %H:00:00', ts)) AS INTEGER) AS time, SUM(event='memory_graph_recall_success') AS success, SUM(event='memory_graph_recall_failed') AS failed FROM agent_events WHERE event IN ('memory_graph_recall_success','memory_graph_recall_failed') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time",
+          "queryText": "SELECT CAST(strftime('%s', strftime('%Y-%m-%d %H:00:00', ts)) AS INTEGER) AS time, SUM(event='memory_graph_recall_success') AS success, SUM(event='memory_graph_recall_failed') AS failed FROM agent_events WHERE event IN ('memory_graph_recall_success','memory_graph_recall_failed') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "type": "stat",
+      "title": "Embed/FTS write failures (24h)",
+      "description": "embed_write_failure events (#811c): provenance/FTS writes that failed in remember(). Previously logged at debug and invisible -- the silence that let FTS coverage drift. Should be 0.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 0,
+        "y": 44
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^failures$/"
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#ef4444",
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT COUNT(*) AS failures FROM agent_events WHERE event = 'embed_write_failure' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')",
+          "queryText": "SELECT COUNT(*) AS failures FROM agent_events WHERE event = 'embed_write_failure' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')"
+        }
+      ]
+    }
+  ]
+}

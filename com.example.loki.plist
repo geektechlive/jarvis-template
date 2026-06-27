@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Deployed & verified live on the M2 Mini (2026-06-22); receiving pushes.
+
+  launchd agent for Loki (log aggregation backend) — installs to:
+    ~/Library/LaunchAgents/com.example.loki.plist
+
+  Loki listens on 127.0.0.1:3100 (loopback only).
+  Storage: ~/Jarvis/observability/loki-data/ (created by Loki on first start).
+
+  Pre-flight on Mini:
+    1. brew install loki
+    2. Confirm binary: ls /opt/homebrew/bin/loki
+    3. Confirm port free: lsof -i :3100
+    4. mkdir -p ~/Jarvis/observability/loki-data
+
+  Install:
+    cp com.example.loki.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.example.loki.plist
+
+  Check status:
+    launchctl list | grep com.example.loki
+
+  View logs:
+    tail -f ~/Jarvis/logs/loki.error.log
+
+  Rollback (stop without uninstall):
+    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.example.loki.plist
+
+  Full uninstall (removes plist from LaunchAgents, data remains):
+    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.example.loki.plist
+    rm ~/Library/LaunchAgents/com.example.loki.plist
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.example.loki</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/loki</string>
+        <string>-config.file=/Users/<username>/Jarvis/infra/observability/loki-config.yaml</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/<username>/Jarvis</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/<username></string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Throttle respawn to avoid spin-fail loop if config is broken.
+         Loki will exit non-zero on bad config; 30s gives time to read the error log. -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/<username>/Jarvis/logs/loki.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/<username>/Jarvis/logs/loki.error.log</string>
+</dict>
+</plist>

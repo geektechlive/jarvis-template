@@ -1,0 +1,138 @@
+{
+  "uid": "jarvis-turn-latency",
+  "title": "Jarvis — Turn Latency",
+  "tags": ["jarvis", "observability", "latency"],
+  "timezone": "browser",
+  "style": "dark",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": { "from": "now-24h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "text",
+      "title": "",
+      "gridPos": { "h": 3, "w": 24, "x": 0, "y": 0 },
+      "options": { "mode": "markdown", "content": "**Reply-path latency.** The `recall:*` phases below run in `before_prompt`, *before the LLM is called*, so their duration is added directly to how long Jarvis takes to reply. The `routine:*` table at the bottom is **background scheduled work — not in the reply path**; those multi-minute spans do not delay your messages. The signal to watch is recall latency and how often it crosses 2s/5s." }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Recall latency by phase (reply-path, before LLM)",
+      "description": "Duration of each before_prompt recall phase per turn. These run before the model is invoked, so they add directly to perceived reply time. user_profile is usually cache-served (~1ms); procedural and knowledge carry embedding + HyDE + query-augmentation + Graphiti cost and are the main contributors.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 3 },
+      "fieldConfig": { "defaults": { "unit": "ms", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 10, "lineWidth": 1, "showPoints": "auto" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "#4ade80", "value": null }, { "color": "#fbbf24", "value": 2000 }, { "color": "#ef4444", "value": 5000 } ] } }, "overrides": [ { "matcher": { "id": "byName", "options": "recall:procedural" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#ef4444" } } ] }, { "matcher": { "id": "byName", "options": "recall:knowledge" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#fbbf24" } } ] }, { "matcher": { "id": "byName", "options": "recall:user_profile" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#22d3ee" } } ] }, { "matcher": { "id": "byName", "options": "recall:graph" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#a78bfa" } } ] } ] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "rawQueryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, json_extract(detail,'$.name') AS metric, json_extract(detail,'$.durationMs') AS value FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name') LIKE 'recall:%' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time", "queryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, json_extract(detail,'$.name') AS metric, json_extract(detail,'$.durationMs') AS value FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name') LIKE 'recall:%' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time" } ]
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Slow recalls per hour (>2s, >5s)",
+      "description": "How often a before_prompt recall phase crossed 2s (amber) and 5s (red), bucketed hourly. This is the frequency of visibly-slow replies. A flat low line means recall is staying fast; spikes mark the windows worth investigating.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "decimals": 0, "custom": { "drawStyle": "bars", "fillOpacity": 60, "lineWidth": 1 } }, "overrides": [ { "matcher": { "id": "byName", "options": ">2s" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#fbbf24" } } ] }, { "matcher": { "id": "byName", "options": ">5s" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#ef4444" } } ] } ] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "legendFormat": ">2s", "rawQueryText": "SELECT CAST((strftime('%s',ts)/3600)*3600 AS INTEGER) AS time, COUNT(*) AS value FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name') LIKE 'recall:%' AND json_extract(detail,'$.durationMs') > 2000 AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time", "queryText": "SELECT CAST((strftime('%s',ts)/3600)*3600 AS INTEGER) AS time, COUNT(*) AS value FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name') LIKE 'recall:%' AND json_extract(detail,'$.durationMs') > 2000 AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time" },
+        { "refId": "B", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "legendFormat": ">5s", "rawQueryText": "SELECT CAST((strftime('%s',ts)/3600)*3600 AS INTEGER) AS time, COUNT(*) AS value FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name') LIKE 'recall:%' AND json_extract(detail,'$.durationMs') > 5000 AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time", "queryText": "SELECT CAST((strftime('%s',ts)/3600)*3600 AS INTEGER) AS time, COUNT(*) AS value FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name') LIKE 'recall:%' AND json_extract(detail,'$.durationMs') > 5000 AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time" }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "table",
+      "title": "Recall phase stats (selected range)",
+      "description": "Per-phase recall cost over the dashboard time range: call count, average and max duration, and how many calls exceeded 2s. Ranks which recall phase is the dominant reply-path cost.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "avg_ms", "desc": true } ] },
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } }, "overrides": [ { "matcher": { "id": "byRegexp", "options": "avg_ms|max_ms" }, "properties": [ { "id": "unit", "value": "ms" }, { "id": "custom.cellOptions", "value": { "type": "color-text" } }, { "id": "thresholds", "value": { "mode": "absolute", "steps": [ { "color": "#4ade80", "value": null }, { "color": "#fbbf24", "value": 2000 }, { "color": "#ef4444", "value": 5000 } ] } } ] } ] },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT json_extract(detail,'$.name') AS phase, COUNT(*) AS n, ROUND(AVG(json_extract(detail,'$.durationMs'))) AS avg_ms, MAX(json_extract(detail,'$.durationMs')) AS max_ms, SUM(CASE WHEN json_extract(detail,'$.durationMs')>2000 THEN 1 ELSE 0 END) AS over_2s FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name') LIKE 'recall:%' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY phase ORDER BY avg_ms DESC", "queryText": "SELECT json_extract(detail,'$.name') AS phase, COUNT(*) AS n, ROUND(AVG(json_extract(detail,'$.durationMs'))) AS avg_ms, MAX(json_extract(detail,'$.durationMs')) AS max_ms, SUM(CASE WHEN json_extract(detail,'$.durationMs')>2000 THEN 1 ELSE 0 END) AS over_2s FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name') LIKE 'recall:%' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY phase ORDER BY avg_ms DESC" } ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Memory write latency — extractAndStore (turn_end, post-reply)",
+      "description": "Duration of the post-turn fact extraction/store pass. This fires AFTER the reply is delivered (turns 4, 7, 10... and session_end), so it does not delay the current reply — but it competes for CPU/embeddings and can slow a rapid follow-up. Watch for growth.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "fieldConfig": { "defaults": { "unit": "ms", "min": 0, "custom": { "drawStyle": "points", "fillOpacity": 0, "lineWidth": 1, "pointSize": 5 }, "color": { "mode": "fixed", "fixedColor": "#f472b6" } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "rawQueryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, json_extract(detail,'$.durationMs') AS value FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name')='extractAndStore' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time", "queryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, json_extract(detail,'$.durationMs') AS value FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name')='extractAndStore' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time" } ]
+    },
+    {
+      "id": 6,
+      "type": "table",
+      "title": "Background routines (NOT reply-path) — duration",
+      "description": "Scheduled background routines and their durations. These run on the scheduler, independent of your messages, so their multi-minute spans do NOT delay replies. Shown to keep them visible (and distinct from reply-path cost) and to catch a runaway routine.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "avg_ms", "desc": true } ] },
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" } }, "overrides": [ { "matcher": { "id": "byRegexp", "options": "avg_ms|max_ms" }, "properties": [ { "id": "unit", "value": "ms" } ] } ] },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT json_extract(detail,'$.name') AS routine, COUNT(*) AS n, ROUND(AVG(json_extract(detail,'$.durationMs'))) AS avg_ms, MAX(json_extract(detail,'$.durationMs')) AS max_ms FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name') LIKE 'routine:%' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY routine ORDER BY avg_ms DESC", "queryText": "SELECT json_extract(detail,'$.name') AS routine, COUNT(*) AS n, ROUND(AVG(json_extract(detail,'$.durationMs'))) AS avg_ms, MAX(json_extract(detail,'$.durationMs')) AS max_ms FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name') LIKE 'routine:%' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY routine ORDER BY avg_ms DESC" } ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "TOTAL turn latency (end-to-end, what you feel)",
+      "description": "Full turn wall-clock for the interactive Sonnet-via-CLI session (perf_metrics 'llm' phase): from before_prompt to turn_end, including the model call and any in-turn staff dispatch. This is the number that matches 'Jarvis takes 10-25s'. Recall is only a small slice of it; the rest is the model turn (and dispatched sub-agents).",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 28 },
+      "fieldConfig": { "defaults": { "unit": "ms", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 25, "lineWidth": 2, "showPoints": "always", "pointSize": 5 }, "color": { "mode": "fixed", "fixedColor": "#f97316" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "#4ade80", "value": null }, { "color": "#fbbf24", "value": 10000 }, { "color": "#ef4444", "value": 20000 } ] } }, "overrides": [] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "p90", "max"] }, "tooltip": { "mode": "single" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "rawQueryText": "SELECT CAST(strftime('%s',created_at) AS INTEGER) AS time, latency_ms AS value FROM perf_metrics WHERE phase='llm' AND julianday(created_at) >= julianday($__from/1000,'unixepoch') AND julianday(created_at) < julianday($__to/1000,'unixepoch') ORDER BY time", "queryText": "SELECT CAST(strftime('%s',created_at) AS INTEGER) AS time, latency_ms AS value FROM perf_metrics WHERE phase='llm' AND julianday(created_at) >= julianday($__from/1000,'unixepoch') AND julianday(created_at) < julianday($__to/1000,'unixepoch') ORDER BY time" } ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Per-turn injected size (approx tokens)",
+      "description": "What the harness injects every turn: the before_prompt system prompt (SOUL + memory + staff catalog + ...) and the context_inject block. More input tokens means a slower model turn. This is the measured driver candidate for general slowness — watch it against total turn latency above.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 37 },
+      "fieldConfig": { "defaults": { "unit": "short", "min": 0, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 1, "stacking": { "mode": "normal" } } }, "overrides": [ { "matcher": { "id": "byName", "options": "system prompt" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#22d3ee" } } ] }, { "matcher": { "id": "byName", "options": "context inject" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#a78bfa" } } ] } ] },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "legendFormat": "system prompt", "rawQueryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, json_extract(detail,'$.approxTokens') AS value FROM agent_events WHERE event='prompt_size' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time", "queryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, json_extract(detail,'$.approxTokens') AS value FROM agent_events WHERE event='prompt_size' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time" },
+        { "refId": "B", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "legendFormat": "context inject", "rawQueryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, json_extract(detail,'$.approxTokens') AS value FROM agent_events WHERE event='context_size' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time", "queryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, json_extract(detail,'$.approxTokens') AS value FROM agent_events WHERE event='context_size' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time" }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "timeseries",
+      "title": "Staff dispatch duration (in-turn sub-agents)",
+      "description": "Wall-clock of each interactive staff dispatch (agent_start to agent_end), e.g. the mail-triage staffer for an email question. This runs inside the turn, so it is the slice of a slow reply spent in a sub-agent. Empty until the next dispatch fires post-deploy.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 37 },
+      "fieldConfig": { "defaults": { "unit": "ms", "min": 0, "custom": { "drawStyle": "points", "fillOpacity": 0, "lineWidth": 1, "pointSize": 6 }, "thresholds": { "mode": "absolute", "steps": [ { "color": "#4ade80", "value": null }, { "color": "#fbbf24", "value": 8000 }, { "color": "#ef4444", "value": 15000 } ] } } },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi", "sort": "desc" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "rawQueryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, json_extract(detail,'$.name') AS metric, json_extract(detail,'$.durationMs') AS value FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name') LIKE 'dispatch:%' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time", "queryText": "SELECT CAST(strftime('%s',ts) AS INTEGER) AS time, json_extract(detail,'$.name') AS metric, json_extract(detail,'$.durationMs') AS value FROM agent_events WHERE event='perf_span' AND json_extract(detail,'$.name') LIKE 'dispatch:%' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY time" } ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Recall cache hit rate (%/hour)",
+      "description": "Share of turns served from the in-session profile/procedural cache vs a fresh fetch, bucketed hourly (recall_cache event). Low hit rate = most turns pay full recall. Measured directly now, not inferred from vecMs.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 45 },
+      "fieldConfig": { "defaults": { "unit": "percent", "min": 0, "max": 100, "custom": { "drawStyle": "bars", "fillOpacity": 50, "lineWidth": 1 }, "color": { "mode": "fixed", "fixedColor": "#4ade80" } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "rawQueryText": "SELECT CAST((strftime('%s',ts)/3600)*3600 AS INTEGER) AS time, 100.0*SUM(CASE WHEN json_extract(detail,'$.hit')=1 THEN 1 ELSE 0 END)/COUNT(*) AS value FROM agent_events WHERE event='recall_cache' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time", "queryText": "SELECT CAST((strftime('%s',ts)/3600)*3600 AS INTEGER) AS time, 100.0*SUM(CASE WHEN json_extract(detail,'$.hit')=1 THEN 1 ELSE 0 END)/COUNT(*) AS value FROM agent_events WHERE event='recall_cache' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time" } ]
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "System-prompt breakdown (latest turn, chars)",
+      "description": "Where the latest before_prompt system prompt's bytes came from — SOUL vs recalled memory vs procedural vs graph. Pinpoints which block to trim if the injected size turns out to be the latency driver.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 45 },
+      "options": { "showHeader": true },
+      "fieldConfig": { "defaults": { "custom": { "align": "auto" }, "unit": "short" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT json_extract(detail,'$.systemPromptChars') AS total, json_extract(detail,'$.soulChars') AS soul, json_extract(detail,'$.memoryChars') AS memory, json_extract(detail,'$.proceduralChars') AS procedural, json_extract(detail,'$.graphChars') AS graph FROM agent_events WHERE event='prompt_size' ORDER BY id DESC LIMIT 1", "queryText": "SELECT json_extract(detail,'$.systemPromptChars') AS total, json_extract(detail,'$.soulChars') AS soul, json_extract(detail,'$.memoryChars') AS memory, json_extract(detail,'$.proceduralChars') AS procedural, json_extract(detail,'$.graphChars') AS graph FROM agent_events WHERE event='prompt_size' ORDER BY id DESC LIMIT 1" } ]
+    }
+  ]
+}

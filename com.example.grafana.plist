@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Deployed & verified live on the M2 Mini (2026-06-22).
+
+  launchd agent for Grafana OSS — Jarvis observability UI.
+  Installs to: ~/Library/LaunchAgents/com.example.grafana.plist
+
+  Serves http://<mac-mini-ip>:3000 (LAN).
+
+  Prerequisites (do once on Mini before loading):
+    brew install grafana
+    grafana-cli plugins install frser-sqlite-datasource
+    grafana-cli plugins install yesoreyeram-infinity-datasource
+    # Then set admin password on first login at http://<mac-mini-ip>:3000
+
+  Install:
+    cp com.example.grafana.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.example.grafana.plist
+
+  Check status:
+    launchctl list | grep com.example.grafana
+
+  View logs:
+    tail -f ~/Jarvis/logs/grafana.error.log
+
+  Rollback:
+    launchctl unload ~/Library/LaunchAgents/com.example.grafana.plist
+
+  Binary verified against Homebrew Core formula (2026-06-14):
+    /opt/homebrew/bin/grafana server --config ... --homepath /opt/homebrew/share/grafana
+  The formula uses "grafana server" (subcommand), NOT the legacy "grafana-server" binary.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.example.grafana</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <!-- Launcher sources GITHUB_TOKEN from .env into Grafana's env so the Infinity
+             datasource can auth to the private GitHub API, then exec's grafana server. -->
+        <string>/bin/sh</string>
+        <string>/Users/<username>/Jarvis/scripts/grafana-launch.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/opt/homebrew/var/lib/grafana</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/<username></string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/<username>/Jarvis/logs/grafana.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/<username>/Jarvis/logs/grafana.error.log</string>
+</dict>
+</plist>

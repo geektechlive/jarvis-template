@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Deployed via `make deploy-observability`. Runs scripts/health-probe.py every 60s. -->
+<!-- Interpreter is the dedicated probe venv (~/Jarvis/.venvs/probe) so psutil is -->
+<!-- available for the host-metrics pass; make deploy-observability creates it. -->
+<!-- Rollback: launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.example.jarvis.health-probe.plist -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.example.jarvis.health-probe</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/<username>/Jarvis/.venvs/probe/bin/python3</string>
+        <string>/Users/<username>/Jarvis/scripts/health-probe.py</string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>60</integer>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/<username>/Jarvis</string>
+
+    <key>StandardOutPath</key>
+    <string>/Users/<username>/Jarvis/logs/health-probe.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/<username>/Jarvis/logs/health-probe.error.log</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/Users/<username>/bin</string>
+        <key>PYTHONUNBUFFERED</key>
+        <string>1</string>
+    </dict>
+</dict>
+</plist>

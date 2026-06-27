@@ -1,0 +1,4 @@
+node_modules/
+dist/
+.ion-build/
+src/.ion-build/

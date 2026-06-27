@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Deployed & verified live on the M2 Mini (2026-06-22); actively tailing.
+
+  launchd agent for Grafana Alloy (log tailing + Loki pipeline) — installs to:
+    ~/Library/LaunchAgents/com.example.alloy.plist
+
+  Alloy tails ~/Jarvis/logs/*.error.log, ~/.ion/engine.log, ~/.ion/telemetry.jsonl
+  and pushes structured log streams to Loki at 127.0.0.1:3100.
+
+  Alloy debug UI: http://127.0.0.1:12345 (localhost only; not LAN-facing).
+  WAL / position state: ~/Jarvis/observability/alloy-data/
+    (keeps tail positions across restarts; safe to delete to reset tailing from current EOF).
+
+  Pre-flight on Mini:
+    1. brew install grafana-alloy
+    2. Confirm binary: ls /opt/homebrew/bin/alloy
+    3. Confirm Loki is running: curl -s http://127.0.0.1:3100/ready
+    4. mkdir -p ~/Jarvis/observability/alloy-data
+    5. Validate config (dry-run syntax check):
+         /opt/homebrew/bin/alloy fmt infra/observability/alloy-config.alloy
+       Alloy does not have a --check-only flag; fmt exits non-zero on parse errors.
+
+  Install:
+    cp com.example.alloy.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.example.alloy.plist
+
+  Check status:
+    launchctl list | grep com.example.alloy
+
+  View logs:
+    tail -f ~/Jarvis/logs/alloy.error.log
+
+  Check pipeline health (requires Alloy running):
+    curl -s http://127.0.0.1:12345/api/v0/web/components | jq '.[]|select(.health.state!="healthy")'
+
+  Rollback (stop without uninstall):
+    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.example.alloy.plist
+
+  Full uninstall:
+    launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.example.alloy.plist
+    rm ~/Library/LaunchAgents/com.example.alloy.plist
+    # WAL at ~/Jarvis/observability/alloy-data/ is safe to delete after uninstall.
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.example.alloy</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/alloy</string>
+        <string>run</string>
+        <string>/Users/<username>/Jarvis/infra/observability/alloy-config.alloy</string>
+        <!-- Write WAL and component state here, not into the repo working directory. -->
+        <string>--storage.path=/Users/<username>/.jarvis/observability/alloy-data</string>
+        <!-- Bind debug UI to loopback only. -->
+        <string>--server.http.listen-addr=127.0.0.1:12345</string>
+        <!-- Suppress anonymous usage reporting. -->
+        <string>--disable-reporting=true</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/<username>/Jarvis</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/<username></string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Throttle respawn to avoid spin-fail loop if Loki is not yet up
+         or if the River config has a syntax error. -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/<username>/Jarvis/logs/alloy.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/<username>/Jarvis/logs/alloy.error.log</string>
+</dict>
+</plist>

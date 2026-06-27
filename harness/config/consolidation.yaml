@@ -1,0 +1,20 @@
+consolidation:
+  # Window for cross-session analysis (days)
+  window_days: 7
+
+  # Cosine similarity threshold for deduplication (0.0–1.0)
+  dedup_threshold: 0.92
+
+  # Entries in knowledge not recalled within this many days are moved to archive
+  decay_unused_days: 90
+
+  # Run contradiction detection during decay (slower — requires LLM calls)
+  decay_contradiction_check: true
+
+  # After summarizing a session, raw messages older than this many days may be deleted.
+  # DESTRUCTIVE — disabled by default. Set to true only after you trust the summaries.
+  message_retention_days: 30
+  delete_summarized_messages: false
+
+  # Repos to re-ingest nightly (Phase 13 — empty by default)
+  refresh_repos: []

@@ -1,0 +1,830 @@
+{
+  "uid": "jarvis-errors-health",
+  "title": "Jarvis \u2014 Errors & Health",
+  "tags": [
+    "jarvis",
+    "observability"
+  ],
+  "timezone": "browser",
+  "style": "dark",
+  "schemaVersion": 39,
+  "version": 2,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Errors (last 1h)",
+      "description": "Error/critical/fatal log lines across all services in the last hour. Low number here does NOT mean healthy \u2014 read it alongside Warnings and the health timeline.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 1
+              },
+              {
+                "color": "#ef4444",
+                "value": 25
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "View these error lines",
+              "url": "/d/jarvis-logs/jarvis-logs?var-level=error|critical|fatal&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum(count_over_time({service=~\".+\"} | level=~\"error|critical|fatal\" [1h]))"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Warnings (last 1h)",
+      "description": "Warning-level log lines (level matches warn OR warning) in the last hour. Surfaces degradation that never trips the error counter.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 5,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 1
+              },
+              {
+                "color": "#ef4444",
+                "value": 100
+              }
+            ]
+          },
+          "links": [
+            {
+              "title": "View these warning lines",
+              "url": "/d/jarvis-logs/jarvis-logs?var-level=warn|warning&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "expr": "sum(count_over_time({service=~\".+\"} | level=~\"warn|warning\" [1h]))"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Services not OK (now)",
+      "description": "Count of monitored services whose latest host_health probe (within the last 3 min) is warn or down. This is the true health flag \u2014 it catches a degraded service even when zero errors are being logged.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 10,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 1
+              },
+              {
+                "color": "#ef4444",
+                "value": 2
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT COUNT(*) AS not_ok FROM (SELECT service, status, MAX(ts) FROM host_health WHERE julianday(ts) > julianday('now','-3 minutes') GROUP BY service HAVING status != 'ok')",
+          "queryText": "SELECT COUNT(*) AS not_ok FROM (SELECT service, status, MAX(ts) FROM host_health WHERE julianday(ts) > julianday('now','-3 minutes') GROUP BY service HAVING status != 'ok')"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Error:Warn ratio (1h)",
+      "description": "Errors divided by warnings over the last hour. A spike means warnings are escalating into hard failures; a low ratio with high warnings means quiet degradation worth watching.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 16,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 2,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#22d3ee"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "sum(count_over_time({service=~\".+\"} | level=~\"error|critical|fatal\" [1h])) / sum(count_over_time({service=~\".+\"} | level=~\"warn|warning\" [1h]))"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "state-timeline",
+      "title": "Service health over time",
+      "description": "Per-service status bands from host_health (green=ok, amber=warn, red=down), bucketed at 5-min resolution. Shows WHEN each service degraded, not just the current snapshot. This is the health picture error-count alone hides.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "options": {
+        "showValue": "never",
+        "rowHeight": 0.9,
+        "mergeValues": true,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 90,
+            "lineWidth": 0
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "ok",
+                  "color": "#4ade80",
+                  "index": 0
+                },
+                "1": {
+                  "text": "warn",
+                  "color": "#fbbf24",
+                  "index": 1
+                },
+                "2": {
+                  "text": "down",
+                  "color": "#ef4444",
+                  "index": 2
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 1
+              },
+              {
+                "color": "#ef4444",
+                "value": 2
+              }
+            ]
+          },
+          "color": {
+            "mode": "thresholds"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "rawQueryText": "SELECT CAST((strftime('%s',ts)/300)*300 AS INTEGER) AS time, service AS metric, MAX(CASE WHEN status='down' THEN 2 WHEN status='warn' THEN 1 ELSE 0 END) AS value FROM host_health WHERE julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') AND service IN ('ion','vector','ion-relay','cloudflared','ollama','imessage','discord-bot','routines','disk','nas-mount','apple-foundation','deploy-watchdog','log-patrol','runaway','chroma','embed','graph') GROUP BY time, service ORDER BY time",
+          "queryText": "SELECT CAST((strftime('%s',ts)/300)*300 AS INTEGER) AS time, service AS metric, MAX(CASE WHEN status='down' THEN 2 WHEN status='warn' THEN 1 ELSE 0 END) AS value FROM host_health WHERE julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') AND service IN ('ion','vector','ion-relay','cloudflared','ollama','imessage','discord-bot','routines','disk','nas-mount','apple-foundation','deploy-watchdog','log-patrol','runaway','chroma','embed','graph') GROUP BY time, service ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Errors vs Warnings (per 5m)",
+      "description": "Error/critical/fatal lines (red) overlaid against warn/warning lines (amber) so a low error count is always read in the context of warning pressure.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 50,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "none"
+            }
+          },
+          "links": [
+            {
+              "title": "View error and warning lines",
+              "url": "/d/jarvis-logs/jarvis-logs?var-level=error|critical|fatal|warn|warning&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "errors"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#ef4444"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warnings"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#fbbf24"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "max"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "err",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "legendFormat": "errors",
+          "expr": "sum(count_over_time({service=~\".+\"} | level=~\"error|critical|fatal\" [5m]))"
+        },
+        {
+          "refId": "warn",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "legendFormat": "warnings",
+          "expr": "sum(count_over_time({service=~\".+\"} | level=~\"warn|warning\" [5m]))"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "heatmap",
+      "title": "Error + warning intensity over time",
+      "description": "Density heatmap of combined error+warning volume (10-min buckets) across the fleet. Y axis is event-count magnitude; hot cells reveal bursts and anomalous spikes a flat counter hides. Per-service attribution is carried by the Service health timeline and Top error sources panels.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 13
+      },
+      "options": {
+        "calculate": true,
+        "calculation": {
+          "yBuckets": {
+            "mode": "count",
+            "value": "10"
+          }
+        },
+        "color": {
+          "mode": "scheme",
+          "scheme": "Turbo",
+          "steps": 64,
+          "exponent": 0.5,
+          "fill": "#22d3ee"
+        },
+        "yAxis": {
+          "axisPlacement": "left",
+          "unit": "short"
+        },
+        "legend": {
+          "show": true
+        },
+        "tooltip": {
+          "show": true,
+          "yHistogram": false
+        },
+        "cellGap": 2,
+        "rowsFrame": {
+          "layout": "auto"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "hideFrom": {
+              "tooltip": false,
+              "viz": false,
+              "legend": false
+            }
+          },
+          "links": [
+            {
+              "title": "View error and warning lines",
+              "url": "/d/jarvis-logs/jarvis-logs?var-level=error|critical|fatal|warn|warning&${__url_time_range}",
+              "targetBlank": false
+            }
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "legendFormat": "events",
+          "expr": "sum(count_over_time({service=~\".+\"} | level=~\"error|critical|fatal|warn|warning\" [10m]))"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Top error sources (24h)",
+      "description": "Recurring error signatures: error/critical/fatal line counts grouped by service over the last 24h, ranked. Identifies the dominant source of failures rather than a single aggregate number.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 13
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "errors",
+            "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "errors"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "gradient"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4ade80",
+                      "value": null
+                    },
+                    {
+                      "color": "#fbbf24",
+                      "value": 10
+                    },
+                    {
+                      "color": "#ef4444",
+                      "value": 50
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "service"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "View these error lines",
+                    "url": "/d/jarvis-logs/jarvis-logs?var-service=${__data.fields[\"service\"]}&var-level=error|critical|fatal&from=now-24h&to=now",
+                    "targetBlank": false
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "instant",
+          "legendFormat": "{{service}}",
+          "expr": "topk(10, sum by (service) (count_over_time({service=~\".+\"} | level=~\"error|critical|fatal\" [24h])))"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {
+            "mode": "columns"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "service": "service",
+              "Value": "errors"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "logs",
+      "title": "Recent errors & warnings (live)",
+      "description": "Live tail of error, critical, fatal, warn, and warning lines across all services. The raw evidence behind the counters and timeline above.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      },
+      "options": {
+        "showTime": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "links": [
+        {
+          "title": "Open in Logs Explorer",
+          "url": "/d/jarvis-logs/jarvis-logs?var-level=error|critical|fatal|warn|warning&${__url_time_range}",
+          "targetBlank": false
+        }
+      ],
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "editorMode": "code",
+          "queryType": "range",
+          "expr": "{service=~\".+\"} | level=~\"error|critical|fatal|warn|warning\""
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "type": "timeseries",
+      "title": "Harness errors by subsystem (trend)",
+      "description": "Structured harness_error events grouped by subsystem (hourly). These are the silent-failure sites instrumented via recordError() -- voice, working_memory, open_threads, gap_detection, graph_ingest, turn_end_extraction, extension_init, roster_refresh, mail_send. Loki shows that *something* logged; this shows *which subsystem* and the trend.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 16,
+        "x": 0,
+        "y": 33
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "sum"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "rawQueryText": "SELECT CAST(strftime('%s', strftime('%Y-%m-%d %H:00:00', ts)) AS INTEGER) AS time, json_extract(detail,'$.subsystem') AS subsystem, COUNT(*) AS value FROM agent_events WHERE event='harness_error' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time, subsystem ORDER BY time",
+          "queryText": "SELECT CAST(strftime('%s', strftime('%Y-%m-%d %H:00:00', ts)) AS INTEGER) AS time, json_extract(detail,'$.subsystem') AS subsystem, COUNT(*) AS value FROM agent_events WHERE event='harness_error' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time, subsystem ORDER BY time",
+          "timeColumns": [
+            "time"
+          ]
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "type": "table",
+      "title": "Top failing subsystems (range)",
+      "description": "harness_error count by subsystem over the dashboard range, with last-seen time. The at-a-glance 'where is it breaking' list.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 16,
+        "y": 33
+      },
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT json_extract(detail,'$.subsystem') AS subsystem, COUNT(*) AS failures, MAX(ts) AS last_seen FROM agent_events WHERE event='harness_error' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY subsystem ORDER BY failures DESC",
+          "queryText": "SELECT json_extract(detail,'$.subsystem') AS subsystem, COUNT(*) AS failures, MAX(ts) AS last_seen FROM agent_events WHERE event='harness_error' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY subsystem ORDER BY failures DESC"
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "type": "table",
+      "title": "Recent harness errors",
+      "description": "Last 50 structured harness_error rows (ts, subsystem, message). Drill-down for the trend panel above.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 42
+      },
+      "options": {
+        "showHeader": true
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT ts, json_extract(detail,'$.subsystem') AS subsystem, json_extract(detail,'$.message') AS message FROM agent_events WHERE event='harness_error' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY id DESC LIMIT 50",
+          "queryText": "SELECT ts, json_extract(detail,'$.subsystem') AS subsystem, json_extract(detail,'$.message') AS message FROM agent_events WHERE event='harness_error' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY id DESC LIMIT 50"
+        }
+      ]
+    }
+  ]
+}

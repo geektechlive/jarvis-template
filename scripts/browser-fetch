@@ -1,0 +1,4 @@
+#!/bin/bash
+# Stealth browser fetch -- bypasses bot detection via playwright-extra + stealth plugin
+# Usage: browser-fetch <url> [max-chars]
+cd ~/Jarvis/tools-js/browser && exec /opt/homebrew/bin/node fetch.js "$@"

@@ -1,0 +1,80 @@
+# Deployed & verified live on the M2 Mini (2026-06-22).
+# Grafana datasource provisioning for the Jarvis observability stack.
+#
+# IMPORTANT: The two community plugins must be installed before Grafana starts
+# or these provisioned datasources will fail to bind. See README.md for the
+# grafana-cli install commands.
+#
+# Plugin type identifiers verified against plugin repos (2026-06-14):
+#   frser-sqlite-datasource  — https://github.com/fr-ser/grafana-sqlite-datasource
+#   yesoreyeram-infinity-datasource — https://github.com/grafana/grafana-infinity-datasource
+#
+# Rollback: remove or comment out the offending block; restart Grafana.
+# Grafana will log a warning for any datasource whose plugin is not installed
+# but will not crash — the datasource simply becomes unavailable.
+
+apiVersion: 1
+
+datasources:
+  # -------------------------------------------------------------------------
+  # Loki — log aggregation (Alloy ships logs here)
+  # Built-in datasource; no plugin install required.
+  # -------------------------------------------------------------------------
+  - name: Loki
+    uid: loki
+    type: loki
+    access: proxy
+    url: http://127.0.0.1:3100
+    isDefault: false
+    editable: false
+    jsonData:
+      maxLines: 5000
+      timeout: 60
+
+  # -------------------------------------------------------------------------
+  # SQLite — reads ~/.jarvis/conversations.db
+  # Plugin: frser-sqlite-datasource (Apache-2.0)
+  # Install: grafana-cli plugins install frser-sqlite-datasource
+  # Grafana must run as <username> (owns ~/.jarvis/) so WAL shm files are
+  # writable. Read-only dashboard queries + WAL = safe concurrency.
+  # -------------------------------------------------------------------------
+  - name: Jarvis SQLite
+    uid: jarvis-sqlite
+    type: frser-sqlite-datasource
+    access: proxy
+    editable: false
+    jsonData:
+      path: /Users/<username>/.jarvis/conversations.db
+
+  # -------------------------------------------------------------------------
+  # Infinity — live HTTP probes (vec-server, Ollama, Neo4j, GitHub API)
+  # Plugin: yesoreyeram-infinity-datasource (Apache-2.0)
+  # Install: grafana-cli plugins install yesoreyeram-infinity-datasource
+  # allowedHosts restricts which endpoints dashboard queries may reach.
+  # Add hosts here before building panels that query them.
+  # -------------------------------------------------------------------------
+  - name: Infinity
+    uid: infinity
+    type: yesoreyeram-infinity-datasource
+    access: proxy
+    editable: false
+    jsonData:
+      # Bearer-auth to GitHub with the M2-Mini fine-grained PAT (issues:read on the
+      # private <your-org>/jarvis). Token injected from the Grafana process env via
+      # $__env (set by scripts/grafana-launch.sh from .env) — never committed. The
+      # header is sent to all allowedHosts; the localhost/NAS services ignore it.
+      auth_method: bearerToken
+      allowedHosts:
+        # vec-server health
+        - http://127.0.0.1:9876
+        # GitHub REST API (issues, PRs)
+        - https://api.github.com
+        # Ollama embed host — verify actual host at build time.
+        # CLAUDE.md / the vec plist show embed Ollama on NAS (<nas-ip>:11435),
+        # not loopback. Confirm with: grep OLLAMA_EMBED_HOST ~/Jarvis/com.example.*.plist
+        - http://<nas-ip>:11435
+        # Neo4j HTTP API (Graphiti). CLAUDE.md says Neo4j is on Mini but
+        # the vec plist references NAS for Ollama. Confirm Neo4j host at build time.
+        - http://127.0.0.1:7474
+    secureJsonData:
+      bearerToken: $GITHUB_TOKEN

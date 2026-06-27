@@ -1,0 +1,4 @@
+{
+  "name": "jarvis",
+  "external": ["better-sqlite3", "rss-parser"]
+}

@@ -1,0 +1,88 @@
+# Deployed & verified live on the M2 Mini (2026-06-22); receiving pushes.
+# Target: Loki 3.x (single-binary, filesystem storage, retention enabled).
+# Tested schema: v13 + tsdb (current as of Loki 3.x; re-check `brew info loki` version
+# at build time — schema_config.from date must be in the past or Loki silently ignores it).
+#
+# Paths are Mini-absolute (user <username>). No ~ expansion in Loki config.
+#
+# Rollback: `launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.example.loki.plist`
+# stops the service. Data at ~/Jarvis/observability/loki-data is safe to wipe entirely
+# on a clean restart since it is telemetry/log data only.
+
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  # Bind to loopback only — not exposed on LAN. Grafana and Alloy talk to 127.0.0.1.
+  http_listen_address: 127.0.0.1
+  # gRPC must also bind loopback. Default 0.0.0.0 lets the query-frontend advertise the
+  # LAN IP (<mac-mini-ip>:9095), which the querier then cannot reach (macOS blocks the
+  # internal gRPC loop on the LAN interface) — queries hang with HTTP 000. Pin to loopback.
+  grpc_listen_address: 127.0.0.1
+  log_level: warn
+
+analytics:
+  reporting_enabled: false
+
+# common block: single-binary coordinator state lives in memory (no cluster needed).
+# path_prefix sets base for WAL, ingester files, ruler, etc.
+common:
+  # instance_addr at the common level (not just under ring) sets the address every
+  # component advertises — including the query-frontend the querier dials. Without this,
+  # the frontend advertises the auto-detected LAN IP and the querier can't connect.
+  instance_addr: 127.0.0.1
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+  replication_factor: 1
+  path_prefix: /Users/<username>/.jarvis/observability/loki-data
+
+schema_config:
+  configs:
+    # from must be a past date; Loki ignores future-dated schema entries.
+    - from: "2024-01-01"
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+storage_config:
+  filesystem:
+    # chunks directory; parallel to common.path_prefix but set explicitly.
+    directory: /Users/<username>/.jarvis/observability/loki-data/chunks
+  tsdb_shipper:
+    active_index_directory: /Users/<username>/.jarvis/observability/loki-data/tsdb-index
+    cache_location: /Users/<username>/.jarvis/observability/loki-data/tsdb-cache
+
+compactor:
+  working_directory: /Users/<username>/.jarvis/observability/loki-data/retention
+  compaction_interval: 10m
+  # retention_enabled: true requires delete_request_store to be set, or Loki 2.9+ refuses to start.
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 150
+  delete_request_store: filesystem
+
+limits_config:
+  # 336h = 14 days. Extend to 720h (30 days) after verifying disk usage is acceptable.
+  # Check `df -h ~/Jarvis/observability` after one week of operation.
+  retention_period: 336h
+  # Reject logs older than retention so the compactor does not have to backfill.
+  reject_old_samples: true
+  reject_old_samples_max_age: 336h
+  # Alloy pushes without a tenant ID since auth_enabled is false.
+  # Default per-stream ingestion rate; raise if Alloy batch flushes lag.
+  ingestion_rate_mb: 8
+  ingestion_burst_size_mb: 16
+
+# Ingester chunk tuning — ring and replication_factor are intentionally omitted here;
+# they are already set via the common block above. Duplicating them causes a double-config
+# startup trap even when the values match.
+ingester:
+  # Flush chunks to storage quickly on a personal system.
+  # Default (15m) is sized for HA clusters; 5m reduces memory pressure here.
+  chunk_idle_period: 5m
+  chunk_retain_period: 30s

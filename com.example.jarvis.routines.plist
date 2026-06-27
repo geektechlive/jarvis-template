@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent for Jarvis routines daemon — installs to:
+    ~/Library/LaunchAgents/com.example.jarvis.routines.plist
+
+  Runs scheduled jobs (browser ingest, mail ingest, journal, morning brief,
+  weekly curator) independently of the Slack bot process.
+
+  Before installing, update:
+    - WorkingDirectory: full path to the Jarvis repo on the Mini
+    - StandardOutPath / StandardErrorPath: update username if different from <username>
+
+  Install:
+    cp com.example.jarvis.routines.plist ~/Library/LaunchAgents/
+    launchctl load ~/Library/LaunchAgents/com.example.jarvis.routines.plist
+
+  Check status:
+    launchctl list | grep jarvis.routines
+
+  View logs:
+    tail -f ~/Jarvis/logs/routines.error.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.example.jarvis.routines</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/uv</string>
+        <string>run</string>
+        <string>python</string>
+        <string>-m</string>
+        <string>harness.routines_daemon</string>
+    </array>
+
+    <!-- Update this path for the Mini -->
+    <key>WorkingDirectory</key>
+    <string>/Users/<username>/Jarvis</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/<username></string>
+    </dict>
+
+    <!-- Start automatically at login -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Restart if the process exits -->
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Throttle restarts — wait 30s before restarting after a crash -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <!-- Update paths below for the Mini's username -->
+    <key>StandardOutPath</key>
+    <string>/Users/<username>/Jarvis/logs/routines.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/<username>/Jarvis/logs/routines.error.log</string>
+</dict>
+</plist>

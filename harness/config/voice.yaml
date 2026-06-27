@@ -1,0 +1,28 @@
+# Voice / text-to-speech configuration.
+#
+# CUSTOMIZE: pick a backend and supply your own voice. `elevenlabs` needs an
+# ELEVENLABS_API_KEY in .env and a voice_id from your ElevenLabs account;
+# `local_model` uses Kokoro TTS via mlx-audio and needs no API key.
+backend: elevenlabs
+elevenlabs:
+  model: eleven_turbo_v2_5
+  monthly_char_budget: 10000
+  # CUSTOMIZE: your ElevenLabs voice ID (Voice Lab -> a voice -> "ID").
+  voice_id: <elevenlabs-voice-id>
+enabled: true
+local_model:
+  name: kokoro
+  speed: 1.0
+  # CUSTOMIZE: any Kokoro voice name (e.g. bm_george, af_sarah).
+  voice: bm_george
+precache:
+- Asking the researcher.
+- Assembling a panel.
+- Good morning, sir.
+- Working on it.
+- Leave it with me.
+- Right away, sir.
+- Noted.
+say:
+  # CUSTOMIZE: macOS `say` voice used as the offline fallback.
+  voice: Daniel

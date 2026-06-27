@@ -1,0 +1,159 @@
+{
+  "uid": "jarvis-telemetry",
+  "title": "Jarvis — Telemetry & Cost",
+  "tags": ["jarvis", "observability"],
+  "timezone": "browser",
+  "style": "dark",
+  "schemaVersion": 39,
+  "version": 3,
+  "refresh": "30s",
+  "time": { "from": "now-24h", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Cost (last 1h)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 5, "w": 5, "x": 0, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2, "color": { "mode": "fixed", "fixedColor": "#22d3ee" } } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_costUsd [1h]))" } ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Runs (last 1h)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 5, "w": 5, "x": 5, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "fixed", "fixedColor": "#60a5fa" } } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(count_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} [1h]))" } ]
+    },
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Avg cost / turn (1h)",
+      "description": "Total run cost divided by total turns over the last hour — the marginal cost of doing one more thing. Trends up when sessions get more expensive per step (larger context, pricier model).",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 5, "w": 5, "x": 10, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "value", "graphMode": "area" },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 4, "color": { "mode": "fixed", "fixedColor": "#a78bfa" } } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_costUsd [1h])) / sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_numTurns [1h]))" } ]
+    },
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Cache-hit ratio (1h)",
+      "description": "cacheRead / (cacheRead + cacheCreation + input) tokens. High ratio = prompt caching is working and most context is being served cheaply. A drop means cache churn — context is being rebuilt and paid for.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 5, "w": 4, "x": 15, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "area" },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 2, "thresholds": { "mode": "absolute", "steps": [ { "color": "#ef4444", "value": null }, { "color": "#fbbf24", "value": 0.4 }, { "color": "#4ade80", "value": 0.7 } ] } } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_cacheReadTokens [1h])) / (sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_cacheReadTokens [1h])) + sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_cacheCreationTokens [1h])) + sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_inputTokens [1h])))" } ]
+    },
+    {
+      "id": 11,
+      "type": "bargauge",
+      "title": "Today's spend vs budget",
+      "description": "Cumulative cost over the last 24h against a soft $10/day budget. Amber at 70%, red at 100% — a cost ceiling, not just a running total.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 5, "w": 5, "x": 19, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "displayMode": "gradient", "orientation": "horizontal", "showUnfilled": true, "maxVizHeight": 30 },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2, "min": 0, "max": 10, "thresholds": { "mode": "absolute", "steps": [ { "color": "#22d3ee", "value": null }, { "color": "#fbbf24", "value": 7 }, { "color": "#ef4444", "value": 10 } ] } } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_costUsd [24h]))" } ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Cost trend (per 15m)",
+      "description": "Spend rate over time. The shape — bursts vs steady drip — tells you whether cost is event-driven or background.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 4, "color": { "mode": "fixed", "fixedColor": "#22d3ee" }, "custom": { "drawStyle": "bars", "fillOpacity": 50, "lineWidth": 1, "gradientMode": "opacity" } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "legendFormat": "cost (USD)", "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_costUsd [15m]))" } ]
+    },
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Cost per turn over time (per 15m)",
+      "description": "costUsd / numTurns bucketed over time — a correlation, not a raw total. Rising line means each turn is getting more expensive (bigger context or model shift) even if total spend looks flat.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 4, "color": { "mode": "fixed", "fixedColor": "#a78bfa" }, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2, "spanNulls": true, "pointSize": 5, "showPoints": "auto" } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "legendFormat": "$/turn", "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_costUsd [15m])) / sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_numTurns [15m]))" } ]
+    },
+    {
+      "id": 13,
+      "type": "piechart",
+      "title": "Cost by model (24h)",
+      "description": "Spend split across models. Surfaces model mix and flags if an expensive model is quietly dominating cost.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 13 },
+      "options": { "pieType": "donut", "reduceOptions": { "calcs": ["lastNotNull"] }, "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "tooltip": { "mode": "single" } },
+      "fieldConfig": { "defaults": { "unit": "currencyUSD", "decimals": 2, "color": { "mode": "palette-classic" } } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "instant", "legendFormat": "{{payload_model}}", "expr": "sum by (payload_model) (sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_costUsd [24h]))" } ]
+    },
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Cache-hit ratio trend (per 15m)",
+      "description": "cacheRead / (cacheRead + cacheCreation + input) over time. A sustained dip is the leading indicator of cost creep — the cache stopped paying off before the dollar figure spikes.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 13 },
+      "fieldConfig": { "defaults": { "unit": "percentunit", "decimals": 2, "min": 0, "max": 1, "color": { "mode": "fixed", "fixedColor": "#4ade80" }, "custom": { "drawStyle": "line", "fillOpacity": 20, "lineWidth": 2, "gradientMode": "scheme", "spanNulls": true } }, "thresholds": { "mode": "absolute", "steps": [ { "color": "#ef4444", "value": null }, { "color": "#fbbf24", "value": 0.4 }, { "color": "#4ade80", "value": 0.7 } ] } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "single" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "legendFormat": "cache-hit ratio", "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_cacheReadTokens [15m])) / (sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_cacheReadTokens [15m])) + sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_cacheCreationTokens [15m])) + sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_inputTokens [15m])))" } ]
+    },
+    {
+      "id": 6,
+      "type": "timeseries",
+      "title": "Tokens by type (stacked, per 15m)",
+      "description": "Input, output, cache-read, and cache-creation tokens stacked over time. Shows the token mix driving cost — cache-read should dominate a healthy, well-cached workload.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 21 },
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "drawStyle": "line", "fillOpacity": 35, "lineWidth": 1, "stacking": { "mode": "normal" }, "gradientMode": "opacity" } }, "overrides": [ { "matcher": { "id": "byName", "options": "input" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#22d3ee" } } ] }, { "matcher": { "id": "byName", "options": "output" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#60a5fa" } } ] }, { "matcher": { "id": "byName", "options": "cache read" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#4ade80" } } ] }, { "matcher": { "id": "byName", "options": "cache create" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#a78bfa" } } ] } ] },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["sum"] }, "tooltip": { "mode": "multi" } },
+      "targets": [
+        { "refId": "in", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "legendFormat": "input", "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_inputTokens [15m]))" },
+        { "refId": "out", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "legendFormat": "output", "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_outputTokens [15m]))" },
+        { "refId": "cacheR", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "legendFormat": "cache read", "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_cacheReadTokens [15m]))" },
+        { "refId": "cacheC", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "legendFormat": "cache create", "expr": "sum(sum_over_time({service=\"ion-telemetry\", kind=\"run.complete\"} | json | unwrap payload_cacheCreationTokens [15m]))" }
+      ]
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Recall latency (avg per 10m, by phase)",
+      "description": "Memory recall phase latency from perf_metrics (SQLite). The retrieval hot path that gates every turn — spikes here translate directly into slower responses regardless of model cost.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 21 },
+      "fieldConfig": { "defaults": { "unit": "ms", "decimals": 0, "custom": { "drawStyle": "line", "fillOpacity": 15, "lineWidth": 2, "spanNulls": true, "pointSize": 5, "showPoints": "auto", "gradientMode": "opacity" }, "color": { "mode": "palette-classic" }, "thresholds": { "mode": "absolute", "steps": [ { "color": "#4ade80", "value": null }, { "color": "#fbbf24", "value": 500 }, { "color": "#ef4444", "value": 1000 } ] } } },
+      "options": { "legend": { "displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"] }, "tooltip": { "mode": "multi" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "rawQueryText": "SELECT CAST((strftime('%s',created_at)/600)*600 AS INTEGER) AS time, phase AS metric, AVG(latency_ms) AS value FROM perf_metrics WHERE julianday(created_at) >= julianday($__from/1000,'unixepoch') AND julianday(created_at) < julianday($__to/1000,'unixepoch') GROUP BY time, phase ORDER BY time", "queryText": "SELECT CAST((strftime('%s',created_at)/600)*600 AS INTEGER) AS time, phase AS metric, AVG(latency_ms) AS value FROM perf_metrics WHERE julianday(created_at) >= julianday($__from/1000,'unixepoch') AND julianday(created_at) < julianday($__to/1000,'unixepoch') GROUP BY time, phase ORDER BY time" } ]
+    },
+    {
+      "id": 7,
+      "type": "timeseries",
+      "title": "Telemetry events per 5m (by kind)",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 7, "w": 24, "x": 0, "y": 29 },
+      "fieldConfig": { "defaults": { "unit": "short", "color": { "mode": "palette-classic" }, "custom": { "drawStyle": "bars", "fillOpacity": 40 } } },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "calcs": ["sum"] } },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "legendFormat": "{{kind}}", "expr": "sum by (kind) (count_over_time({service=\"ion-telemetry\"} [5m]))" } ]
+    },
+    {
+      "id": 8,
+      "type": "logs",
+      "title": "Telemetry stream (run.complete / llm.call / tool.execute)",
+      "description": "Raw ion-telemetry JSONL. run.complete carries per-run cost/turns/tokens/model for ALL backends (incl. the main CliBackend session as of ion 11c9b1c). llm.call/tool.execute spans are ApiBackend-only. Flushes every batchSize (=5) events.",
+      "datasource": { "type": "loki", "uid": "loki" },
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 36 },
+      "options": { "showTime": true, "wrapLogMessage": true, "enableLogDetails": true, "dedupStrategy": "none", "sortOrder": "Descending" },
+      "targets": [ { "refId": "A", "datasource": { "type": "loki", "uid": "loki" }, "editorMode": "code", "queryType": "range", "expr": "{service=\"ion-telemetry\"}" } ]
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent for the Jarvis vector/recall tool server — installs to:
+    ~/Library/LaunchAgents/com.example.tools-py-vector.plist
+
+  Serves http://127.0.0.1:9876 (/recall, /remember, /health).
+  Called by the harness-ts extension for memory recall.
+
+  Install:
+    cp com.example.tools-py-vector.plist ~/Library/LaunchAgents/
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.example.tools-py-vector.plist
+
+  Check status:
+    launchctl list | grep tools-py-vector
+
+  View logs:
+    tail -f ~/Jarvis/logs/vector.error.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.example.tools-py-vector</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/<username>/Jarvis/.venv/bin/python</string>
+        <string>tools-py/vector-store/server.py</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/<username>/Jarvis</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/<username></string>
+        <!-- Embed Ollama on Synology NAS (offloaded from M2, frees ~4GB unified memory) -->
+        <key>OLLAMA_EMBED_HOST</key>
+        <string>http://<nas-ip>:11435</string>
+        <!-- Neo4j on Synology NAS for Graphiti knowledge graph -->
+        <key>GRAPHITI_NEO4J_PASSWORD</key>
+        <string>jarvis-neo4j-password</string>
+        <!-- OpenRouter API key for tagger/hyde/augment LLM calls -->
+        <key>OPENROUTER_API_KEY</key>
+        <string>OPENROUTER_API_KEY_PLACEHOLDER</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <!-- Bump file-descriptor limit. macOS default per-process soft limit
+         (~256) gets exhausted by the chromadb / ollama embedding-function
+         reconstruct path leaking FDs over many embed calls. 65536 is the
+         macOS hard limit and gives the server long runway. Real fix is
+         finding the leak in the embedding-function lifecycle. -->
+    <key>SoftResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>65536</integer>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/<username>/Jarvis/logs/vector.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/<username>/Jarvis/logs/vector.error.log</string>
+</dict>
+</plist>

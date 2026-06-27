@@ -1,0 +1,105 @@
+{
+  "uid": "jarvis-issues",
+  "title": "Jarvis — Issues & Resolver",
+  "tags": ["jarvis", "observability", "issues"],
+  "timezone": "browser",
+  "style": "dark",
+  "schemaVersion": 39,
+  "version": 3,
+  "refresh": "1m",
+  "time": { "from": "now-7d", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Open issues (excl. PRs)",
+      "description": "Count of open issues only — pull_request rows are filtered out (GitHub /issues returns both). Source: Infinity datasource, GitHub search API.",
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^open_issues$/" }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "color": { "mode": "fixed", "fixedColor": "#22d3ee" } } },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity" },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "https://api.github.com/search/issues?q=repo:<your-org>/jarvis+is:issue+is:open&per_page=1",
+          "url_options": { "method": "GET" },
+          "root_selector": "",
+          "columns": [ { "selector": "total_count", "text": "open_issues", "type": "number" } ]
+        }
+      ]
+    },
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Resolver failures (24h)",
+      "description": "resolver_failed events in the last 24h. Source: agent_events.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 0 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^failures$/" }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "thresholds": { "mode": "absolute", "steps": [ { "color": "#4ade80", "value": null }, { "color": "#fbbf24", "value": 1 }, { "color": "#ef4444", "value": 5 } ] } } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT COUNT(*) AS failures FROM agent_events WHERE event IN ('resolver_failed') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')", "queryText": "SELECT COUNT(*) AS failures FROM agent_events WHERE event IN ('resolver_failed') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')" } ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Resolver outcomes per day (7d)",
+      "description": "Daily resolver outcome trend: delivered vs failed (resolver_failed) vs awaiting-approval vs dirty-workspace. Shows whether the auto-resolver is shipping fixes or stalling. Source: agent_events resolver_* events.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 5, "w": 12, "x": 12, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "custom": { "drawStyle": "bars", "fillOpacity": 70, "lineWidth": 1, "stacking": { "mode": "normal" } } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "delivered" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#4ade80" } } ] },
+        { "matcher": { "id": "byName", "options": "failed" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#ef4444" } } ] },
+        { "matcher": { "id": "byName", "options": "awaiting" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#60a5fa" } } ] },
+        { "matcher": { "id": "byName", "options": "dirty_workspace" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#fbbf24" } } ] }
+      ] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "rawQueryText": "SELECT CAST(strftime('%s', date(ts)) AS INTEGER) AS time, SUM(event='resolver_delivered') AS delivered, SUM(event IN ('resolver_failed')) AS failed, SUM(event='resolver_awaiting_approval') AS awaiting, SUM(event='resolver_dirty_workspace') AS dirty_workspace FROM agent_events WHERE event LIKE 'resolver%' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time", "queryText": "SELECT CAST(strftime('%s', date(ts)) AS INTEGER) AS time, SUM(event='resolver_delivered') AS delivered, SUM(event IN ('resolver_failed')) AS failed, SUM(event='resolver_awaiting_approval') AS awaiting, SUM(event='resolver_dirty_workspace') AS dirty_workspace FROM agent_events WHERE event LIKE 'resolver%' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time" } ]
+    },
+    {
+      "id": 2,
+      "type": "table",
+      "title": "Open GitHub issues (<your-org>/jarvis)",
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity" },
+      "description": "Live via the Infinity datasource, authenticated with the M2-Mini fine-grained PAT (bearer token from .env). Includes PRs (GitHub /issues returns both).",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 5 },
+      "fieldConfig": { "defaults": {}, "overrides": [ { "matcher": { "id": "byName", "options": "#" }, "properties": [ { "id": "custom.width", "value": 60 }, { "id": "links", "value": [ { "title": "Open on GitHub", "url": "https://github.com/<your-org>/jarvis/issues/${__data.fields[\"#\"]}", "targetBlank": true } ] } ] } ] },
+      "options": { "showHeader": true, "sortBy": [ { "displayName": "updated", "desc": true } ] },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "infinity" },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "https://api.github.com/repos/<your-org>/jarvis/issues?state=open&per_page=30&sort=updated",
+          "url_options": { "method": "GET" },
+          "root_selector": "",
+          "columns": [
+            { "selector": "number", "text": "#", "type": "number" },
+            { "selector": "title", "text": "title", "type": "string" },
+            { "selector": "comments", "text": "comments", "type": "number" },
+            { "selector": "updated_at", "text": "updated", "type": "timestamp" }
+          ]
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "table",
+      "title": "Resolver events (last 7d)",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 14, "w": 24, "x": 0, "y": 17 },
+      "fieldConfig": { "defaults": {}, "overrides": [ { "matcher": { "id": "byName", "options": "event" }, "properties": [ { "id": "custom.cellOptions", "value": { "type": "color-background" } }, { "id": "mappings", "value": [ { "type": "regex", "options": { "pattern": ".*fail.*|.*error.*", "result": { "color": "#ef4444", "index": 0 } } }, { "type": "value", "options": { "resolver_delivered": { "color": "#4ade80", "index": 1 }, "resolver_awaiting_approval": { "color": "#60a5fa", "index": 2 }, "resolver_started": { "color": "#fbbf24", "index": 3 }, "resolver_no_changes": { "color": "#22d3ee", "index": 4 }, "resolver_dirty_workspace": { "color": "#a78bfa", "index": 5 } } } ] } ] } ] },
+      "options": { "showHeader": true },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT ts, event, detail FROM agent_events WHERE event LIKE 'resolver%' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY id DESC LIMIT 200", "queryText": "SELECT ts, event, detail FROM agent_events WHERE event LIKE 'resolver%' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY id DESC LIMIT 200" } ]
+    }
+  ]
+}

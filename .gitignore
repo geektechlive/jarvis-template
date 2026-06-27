@@ -1,0 +1,70 @@
+# Environment — never commit secrets
+.env
+.env.local
+.env.*.local
+.env.bak*
+
+# Plan files and scratch notes — local only
+PLAN.md
+Notes*.md
+
+# Node
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+.venvs/
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# uv
+.uv/
+uv.lock
+
+# Type checking
+.pyright/
+pyrightconfig.json
+
+# Test artifacts
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# Agent data
+.agentharness/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Logs (keep the directory, ignore contents)
+logs/*.log
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Claude Code project settings (local only — never commit)
+.claude/
+harness/data/journal/
+
+# Mini runtime data (Loki/Alloy storage under ~/Jarvis/observability)
+/observability/
+
+# Mutable staff data lives in iCloud Drive, not the repo (#800).
+harness/data/portfolio.yaml
+harness/data/contacts.yaml
+harness/data/property.yaml

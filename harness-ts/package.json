@@ -1,0 +1,40 @@
+{
+  "name": "jarvis-ts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Jarvis TypeScript ion extension -- the orchestration brain",
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --platform=node --target=node20 --outfile=dist/extension.js --external:better-sqlite3 --alias:ion-sdk=../ion/engine/extensions/sdk/ion-sdk/index.ts",
+    "build:child": "esbuild src/child-extension.ts --bundle --platform=node --target=node20 --outfile=dist/child-extension/index.js --external:better-sqlite3 --alias:ion-sdk=../ion/engine/extensions/sdk/ion-sdk/index.ts",
+    "build:discord-bot": "esbuild src/discord/bot.ts --bundle --platform=node --target=node20 --outfile=dist/discord-bot.js --external:better-sqlite3 --alias:ion-sdk=../ion/engine/extensions/sdk/ion-sdk/index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "node --max-old-space-size=8192 ./node_modules/.bin/eslint src",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "dev": "esbuild src/extension.ts --bundle --platform=node --target=node20 --outfile=dist/extension.js --external:better-sqlite3 --alias:ion-sdk=../ion/engine/extensions/sdk/ion-sdk/index.ts --watch"
+  },
+  "dependencies": {
+    "@atproto/api": "^0.20.7",
+    "@hono/node-server": "^2.0.4",
+    "better-sqlite3": "^12.10.0",
+    "chrono-node": "^2.7.0",
+    "discord.js": "^14.26.4",
+    "hono": "^4.12.23",
+    "js-yaml": "^4.2.0",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.28.0",
+    "eslint": "^9.39.4",
+    "typescript": "^5.5.0",
+    "typescript-eslint": "^8.61.0",
+    "vitest": "^4.1.5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

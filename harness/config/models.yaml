@@ -1,0 +1,193 @@
+# Model routing config — swap models here without touching code.
+# backend: "ollama" (local), "cli" (Claude CLI via ion), "anthropic" (direct), "openrouter" (cloud)
+
+# model_select hook routing rules (harness-ts/src/hooks/modelSelect.ts).
+# Filters applied when Haiku is the default. Explicit model overrides bypass these.
+routing:
+  # Fallback when routing rules are incomplete
+  default_model: claude-haiku-4-5-20251001
+  # Upgrade Haiku to Sonnet when prompt length exceeds this (when available).
+  # v1: prompt text not exposed in hook payload; reserved for v2.
+  upgrade_on_length_chars: 2000
+  # Keywords that trigger Haiku→Sonnet upgrade (when prompt access is available in v2)
+  upgrade_keywords:
+    - review
+    - analyze
+    - design
+    - panel
+    - architecture
+  # Target model for upgrades
+  upgrade_target: claude-sonnet-4-6
+  # NOTE: the interactive model guard (harness-ts/src/hooks/modelSelect.ts) now
+  # forces ANY non-Claude model to Sonnet/CLI for interactive sessions -- there is
+  # no OpenRouter exemption. Dispatched staff and OpenRouter-backed utility roles
+  # (code/improve/procedural/graphiti) pick their model via the spawner/roster and
+  # the role entries below, NOT via model_select, so they are unaffected.
+  # (Removed approved_openrouter_providers: it only ever loosened the interactive
+  # guard and let a persisted openai/gpt-4o-mini pin survive on the main session.)
+
+# Set to true to enable cross-encoder rerank (requires: uv sync --extra rerank)
+rerank_enabled: false
+# Minimum confidence score for knowledge facts to be injected unconditionally.
+# Facts below this threshold are only added if token budget allows (see promptPipeline.ts).
+recall_relevance_threshold: 0.7
+# Set to true to apply recency boost on all recall() calls by default
+recency_boost_enabled: true
+# Importance-boost factor for recall ranking: score *= (1 + factor * importance/10).
+# importance is 1-10; factor 0.3 means a top-importance entry gets up to a 1.3x boost.
+importance_boost_factor: 0.3
+# HyDE retrieval: generate a hypothetical memory entry and merge results with the primary vector pass
+hyde_enabled: true
+# Write-time query augmentation: embed anticipated search queries alongside stored facts
+query_augmentation_enabled: true
+# Run an LLM-as-judge critic on autonomy goal output before delivery (#tier2).
+verification_enabled: true
+
+# Pre-warm these model roles at startup to reduce first-turn latency.
+# "embed" is a special token that warms the embedding endpoint (OLLAMA_EMBED_HOST).
+# Default empty -- opt in explicitly (e.g. [default, embed] on the Mini).
+prewarm_on_startup: [router, embed]
+
+default:
+  backend: cli
+  model: claude-haiku-4-5-20251001
+
+# router/intent (mail-triage + ambient triage) migrated to on-device Apple
+# Foundation Models (#775): ~6-7x faster than cli/haiku, free, offline, with typed
+# guaranteed-valid output. fallback_* restores cli/haiku if on-device is unavailable.
+router:
+  backend: apple
+  model: default
+  fallback_backend: cli
+  fallback_model: claude-haiku-4-5-20251001
+
+intent:
+  backend: apple
+  model: default
+  fallback_backend: cli
+  fallback_model: claude-haiku-4-5-20251001
+
+# Issue #613: switched from ollama/qwen2.5:14b to cli/claude-haiku-4-5-20251001.
+# Ollama on Mini runs embeddings-only (nomic-embed-text).  qwen2.5:14b is no
+# longer resident; every ollamaChat call was waiting for a 19 GB model load,
+# then evicting nomic-embed-text from GPU, causing _find_near_duplicate to
+# block on its next embedding call.  CLI/Haiku is faster and avoids the GPU
+# contention entirely.
+extraction:
+  backend: cli
+  model: claude-haiku-4-5-20251001
+
+research:
+  backend: cli
+  model: claude-haiku-4-5-20251001
+
+# daily / weekly / monthly conversation summarization (daily_summary.ts)
+summary:
+  backend: cli
+  model: claude-haiku-4-5-20251001
+
+code:
+  backend: openrouter
+  model: qwen/qwen-2.5-coder-32b-instruct
+
+writing:
+  backend: cli
+  model: claude-haiku-4-5-20251001
+
+panel:
+  backend: cli
+  model: claude-sonnet-4-6
+
+reflection:
+  backend: cli
+  model: claude-haiku-4-5-20251001
+
+improve:
+  backend: openrouter
+  model: qwen/qwen-2.5-coder-32b-instruct
+
+# Briefing synthesis (scheduler/routines/dispatcher.ts)
+# Backend is checked at runtime; cli routes via dispatchAgent when the scheduler
+# ctx is available. Cold-start synthesis (no ctx) is skipped for cli.
+synthesizer:
+  backend: cli
+  model: claude-sonnet-4-6
+
+# Procedural memory skill capture (memory/procedural.ts)
+procedural:
+  backend: openrouter
+  model: qwen/qwen-2.5-coder-32b-instruct
+
+cloud:
+  backend: anthropic
+  model: claude-sonnet-4-6
+
+# tagger/hyde migrated to on-device Apple Foundation Models (#775): free, offline,
+# keyless, quality-neutral vs flash-lite. fallback_* preserves the prior cloud
+# backend if Apple Intelligence is off / the afm service is down.
+tagger:
+  backend: apple
+  model: default
+  timeout: 30
+  fallback_backend: openrouter
+  fallback_model: google/gemini-2.5-flash-lite
+
+hyde:
+  backend: apple
+  model: default
+  fallback_backend: openrouter
+  fallback_model: google/gemini-2.5-flash-lite
+
+# Issue #613: switched from ollama/qwen2.5:14b to cli/claude-haiku-4-5-20251001.
+# Same root cause as the extraction role above -- qwen2.5:14b not resident on
+# Mini's embeddings-only Ollama.  normalizeFact() already has a CLI code path
+# (shared.ts: NORMALIZE_BACKEND === 'cli') -- this config change activates it.
+normalize:
+  backend: cli
+  model: claude-haiku-4-5-20251001
+
+security_advisor:
+  backend: cli
+  model: claude-sonnet-4-6
+
+importance:
+  backend: cli
+  model: claude-haiku-4-5-20251001
+  timeout: 15
+
+goal_proposal:
+  backend: cli
+  model: claude-haiku-4-5-20251001
+  timeout: 60
+
+verifier:
+  backend: cli
+  model: claude-haiku-4-5-20251001
+  timeout: 30
+
+# Apple Intelligence (Foundation Models, macOS 26 Tahoe / Darwin 25+), issue #775.
+# On-device, free, offline. Served by tools-py/apple-foundation (port 9878) via the
+# `afm` Swift helper. Roles opt in with `backend: apple` + fallback_backend/model;
+# the afm service returns ok:false when Apple Intelligence is off, triggering the
+# fallback. Active roles: tagger, hyde (Python), intent, router (TS).
+apple:
+  enabled: true
+  model: default
+
+# Graphiti temporal knowledge graph -- entity-edge layer over ChromaDB.
+# Requires Neo4j 5.26+ and: uv sync --extra graph
+# Password via GRAPHITI_NEO4J_PASSWORD env var (never hardcode).
+graphiti:
+  enabled: true
+  neo4j_uri: bolt://<nas-ip>:7687
+  neo4j_user: neo4j
+  llm_model: google/gemini-2.5-flash
+  # Model for graphiti's ModelSize.small calls (node summarization). Must be a valid
+  # OpenRouter slug or graphiti falls back to gpt-4.1-nano (OpenAI) -> 400. Switch to
+  # google/gemini-2.5-flash-lite to cut cost (lower fidelity per research) if desired.
+  small_model: google/gemini-2.5-flash
+  embedding_model: nomic-embed-text
+  embedding_dim: 768
+  group_id: jarvis
+  llm_timeout: 240     # seconds per Claude CLI subprocess call
+  ingest_timeout: 600  # seconds for the entire add_episode() chain

@@ -1,0 +1,332 @@
+/*
+ * Jarvis Grafana Chrome Theme
+ * Targets Grafana OSS 13 (Homebrew) running on Mac Mini.
+ *
+ * HOW THIS WORKS
+ * Grafana OSS does not expose a CSS override API. This file is injected by
+ * patching Grafana's index.html template with a <link> tag pointing to this
+ * file placed in Grafana's public/ directory. The patch script
+ * scripts/patch-grafana-theme.sh performs the patch.
+ *
+ * MAINTENANCE COST
+ * The public/ directory is owned by Homebrew and is overwritten on every
+ * `brew upgrade grafana`. Re-run the patch script after any Grafana upgrade.
+ * Grafana's CSS class names and DOM structure are not a stable API; verify
+ * visually after each Grafana upgrade.
+ *
+ * DO NOT load this file via any other mechanism (Boom Theme, Business Text).
+ * Boom Theme (yesoreyeram-boomtheme-panel) is deprecated and broken on
+ * Grafana 10+. Business Text CSS is scoped to its panel sandbox.
+ *
+ * Target palette (mirrors admin/src/styles.css):
+ *   --bg       #0f1117   page background
+ *   --surface  #1a1d26   panel / card backgrounds
+ *   --border   #2a2d3a   borders, dividers
+ *   --text     #e2e8f0   primary text
+ *   --muted    #64748b   secondary / placeholder text
+ *   --accent   #00d4ff   neon cyan: links, active states, highlights
+ *   --green    #22c55e   success / up
+ *   --yellow   #eab308   warning
+ *   --red      #ef4444   error / alert
+ *   --mono     SF Mono, Fira Code, Cascadia Code, monospace
+ */
+
+/* ── Page background ─────────────────────────────────────────────────── */
+body,
+.main-view,
+.page-scrollbar-view,
+[class*="page-"] {
+  background-color: #0f1117 !important;
+}
+
+/* ── Top navigation bar ──────────────────────────────────────────────── */
+header,
+[class*="navbar"],
+[class*="top-nav"],
+nav[class*="grafana"],
+.grafana-app > header {
+  background-color: #1a1d26 !important;
+  border-bottom: 1px solid #2a2d3a !important;
+  box-shadow: none !important;
+}
+
+/* Nav text and icons */
+[class*="navbar"] a,
+[class*="navbar"] button,
+[class*="top-nav"] a,
+[class*="top-nav"] button {
+  color: #94a3b8 !important;
+}
+
+[class*="navbar"] a:hover,
+[class*="navbar"] button:hover,
+[class*="top-nav"] a:hover,
+[class*="top-nav"] button:hover {
+  color: #e2e8f0 !important;
+}
+
+/* Grafana wordmark / logo area */
+[class*="sidemenu"],
+[class*="side-menu"] {
+  background-color: #1a1d26 !important;
+  border-right: 1px solid #2a2d3a !important;
+}
+
+/* ── Panel chrome ────────────────────────────────────────────────────── */
+[class*="panel-container"],
+[class*="panel-chrome"],
+.panel-container,
+.panel-chrome {
+  background-color: #1a1d26 !important;
+  border: 1px solid #2a2d3a !important;
+  border-radius: 8px !important;
+}
+
+/* Panel header title */
+[class*="panel-title"],
+[class*="panel-header"] h2,
+.panel-title-text {
+  color: #e2e8f0 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  color: #64748b !important;
+}
+
+/* Panel menu icon (three dots) */
+[class*="panel-menu"],
+[class*="panel-header-menu"] {
+  color: #64748b !important;
+}
+
+/* ── Dashboard background (the canvas between panels) ────────────────── */
+[class*="dashboard-grid"],
+[class*="dashboard-container"],
+.react-grid-layout,
+[class*="scroll-canvas"] {
+  background-color: #0f1117 !important;
+}
+
+/* ── Sidebar / left nav ──────────────────────────────────────────────── */
+[class*="scrollbar-view"]:not([class*="panel"]),
+aside {
+  background-color: #1a1d26 !important;
+}
+
+/* ── Dropdowns and overlays ──────────────────────────────────────────── */
+[class*="dropdown-menu"],
+[class*="context-menu"],
+[class*="popover"] {
+  background-color: #1a1d26 !important;
+  border: 1px solid #2a2d3a !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.5) !important;
+}
+
+[class*="dropdown-menu"] a,
+[class*="dropdown-menu"] button,
+[class*="context-menu"] a,
+[class*="context-menu"] button {
+  color: #e2e8f0 !important;
+}
+
+[class*="dropdown-menu"] a:hover,
+[class*="dropdown-menu"] button:hover,
+[class*="context-menu"] a:hover,
+[class*="context-menu"] button:hover {
+  background-color: rgba(0, 212, 255, 0.08) !important;
+  color: #00d4ff !important;
+}
+
+/* ── Stat and value text ─────────────────────────────────────────────── */
+[class*="stat-value"],
+[class*="big-value"],
+[class*="singlestat"] {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+/* ── Tables inside panels ────────────────────────────────────────────── */
+[class*="table-ng"],
+table.filter-table,
+[class*="grafana-table"] {
+  background-color: transparent !important;
+}
+
+[class*="table-ng"] thead th,
+.filter-table th {
+  color: #64748b !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.06em !important;
+  border-bottom: 1px solid #2a2d3a !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+[class*="table-ng"] td,
+.filter-table td {
+  color: #e2e8f0 !important;
+  border-bottom: 1px solid #2a2d3a !important;
+}
+
+[class*="table-ng"] tr:hover td,
+.filter-table tr:hover td {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* ── Links and focus / active accents ────────────────────────────────── */
+a,
+[class*="link"] {
+  color: #00d4ff !important;
+}
+
+a:hover,
+[class*="link"]:hover {
+  color: #22d3ee !important;
+  text-decoration: none !important;
+}
+
+/* Time range picker active / selected state */
+[class*="time-picker"],
+[class*="time-range"] {
+  background-color: #1a1d26 !important;
+  border-color: #2a2d3a !important;
+  color: #e2e8f0 !important;
+}
+
+/* Toolbar buttons (refresh, zoom, etc.) */
+[class*="toolbar"] button,
+[class*="toolbox"] button {
+  background-color: #1a1d26 !important;
+  border-color: #2a2d3a !important;
+  color: #e2e8f0 !important;
+}
+
+[class*="toolbar"] button:hover,
+[class*="toolbox"] button:hover {
+  border-color: #00d4ff !important;
+  color: #00d4ff !important;
+}
+
+/* ── Input fields ────────────────────────────────────────────────────── */
+input,
+textarea,
+select,
+[class*="input"],
+[class*="select-container"] {
+  background-color: #1a1d26 !important;
+  border-color: #2a2d3a !important;
+  color: #e2e8f0 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+input:focus,
+textarea:focus,
+[class*="input"]:focus-within {
+  border-color: #00d4ff !important;
+  box-shadow: 0 0 0 2px rgba(0, 212, 255, 0.15) !important;
+  outline: none !important;
+}
+
+/* ── General text ─────────────────────────────────────────────────────── */
+body,
+[class*="grafana-app"] {
+  color: #e2e8f0 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+/* Muted / secondary text */
+[class*="muted"],
+[class*="secondary"],
+label,
+[class*="label"] {
+  color: #64748b !important;
+}
+
+/* ── Legend ──────────────────────────────────────────────────────────── */
+[class*="legend"] {
+  color: #e2e8f0 !important;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+  font-size: 12px !important;
+}
+
+/* ── Log panel (Loki stream) ─────────────────────────────────────────── */
+[class*="logs-row"],
+[class*="log-row"] {
+  border-bottom: 1px solid #2a2d3a !important;
+  font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace !important;
+  font-size: 12px !important;
+}
+
+[class*="log-row-level"] {
+  color: #64748b !important;
+}
+
+[class*="logs-row"]:hover,
+[class*="log-row"]:hover {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* ── Scrollbars ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f1117;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2d3a;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}
+
+/* ── Dashboard row headers ───────────────────────────────────────────── */
+[class*="dashboard-row"],
+[class*="row-title"] {
+  background-color: transparent !important;
+  border-top: 1px solid #2a2d3a !important;
+  color: #64748b !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+}
+
+/* ── Tabs / pill nav inside panels ──────────────────────────────────── */
+[class*="tab-active"],
+[class*="tab"][aria-selected="true"] {
+  border-bottom-color: #00d4ff !important;
+  color: #00d4ff !important;
+}
+
+/* ── Loading spinners / skeletons ────────────────────────────────────── */
+[class*="spinner"],
+[class*="loading"] {
+  color: #00d4ff !important;
+}
+
+/* ── Alert / notification toasts ─────────────────────────────────────── */
+[class*="alert-success"],
+[class*="notification-success"] {
+  background-color: rgba(34, 197, 94, 0.1) !important;
+  border-color: #22c55e !important;
+  color: #22c55e !important;
+}
+
+[class*="alert-warning"],
+[class*="notification-warning"] {
+  background-color: rgba(234, 179, 8, 0.1) !important;
+  border-color: #eab308 !important;
+  color: #eab308 !important;
+}
+
+[class*="alert-error"],
+[class*="notification-error"] {
+  background-color: rgba(239, 68, 68, 0.1) !important;
+  border-color: #ef4444 !important;
+  color: #ef4444 !important;
+}

@@ -1,0 +1,17 @@
+{
+  "date": "2026-05-29",
+  "steps": 8432,
+  "active_energy_kcal": 412,
+  "resting_heart_rate_bpm": 58,
+  "hrv_ms": 42,
+  "sleep": {
+    "total_hours": 7.2,
+    "deep_hours": 1.4,
+    "rem_hours": 1.8,
+    "awake_minutes": 12
+  },
+  "workouts": [
+    { "type": "Running", "duration_minutes": 32, "energy_kcal": 310 }
+  ],
+  "mindful_minutes": 10
+}

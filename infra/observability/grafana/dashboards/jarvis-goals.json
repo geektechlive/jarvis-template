@@ -1,0 +1,132 @@
+{
+  "uid": "jarvis-goals",
+  "title": "Jarvis — Goals",
+  "tags": ["jarvis", "observability", "goals"],
+  "timezone": "browser",
+  "style": "dark",
+  "schemaVersion": 39,
+  "version": 3,
+  "refresh": "1m",
+  "time": { "from": "now-14d", "to": "now" },
+  "templating": { "list": [] },
+  "annotations": { "list": [] },
+  "panels": [
+    {
+      "id": 1,
+      "type": "piechart",
+      "title": "Goal status distribution",
+      "description": "Current goals by lifecycle status (active / proposed / blocked / completed). Source: goals table.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 9, "w": 8, "x": 0, "y": 0 },
+      "options": { "legend": { "displayMode": "table", "placement": "right", "values": ["value", "percent"] }, "pieType": "donut", "reduceOptions": { "calcs": ["lastNotNull"] } },
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [
+        { "matcher": { "id": "byName", "options": "active" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#4ade80" } } ] },
+        { "matcher": { "id": "byName", "options": "proposed" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#fbbf24" } } ] },
+        { "matcher": { "id": "byName", "options": "blocked" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#ef4444" } } ] },
+        { "matcher": { "id": "byName", "options": "completed" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#60a5fa" } } ] }
+      ] },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT SUM(status='active') AS active, SUM(status='proposed') AS proposed, SUM(status='blocked') AS blocked, SUM(status='completed') AS completed FROM goals", "queryText": "SELECT SUM(status='active') AS active, SUM(status='proposed') AS proposed, SUM(status='blocked') AS blocked, SUM(status='completed') AS completed FROM goals" } ]
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Goal-run outcomes per day (14d)",
+      "description": "Daily goal_run outcome trend: completed vs error vs timeout. Reveals whether goal execution reliability is trending up or degrading. Source: goal_runs table (started_at, ISO-8601).",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 9, "w": 16, "x": 8, "y": 0 },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "custom": { "drawStyle": "bars", "fillOpacity": 70, "lineWidth": 1, "stacking": { "mode": "normal" } } }, "overrides": [
+        { "matcher": { "id": "byName", "options": "completed" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#4ade80" } } ] },
+        { "matcher": { "id": "byName", "options": "errors" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#ef4444" } } ] },
+        { "matcher": { "id": "byName", "options": "timeouts" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#fbbf24" } } ] }
+      ] },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" }, "tooltip": { "mode": "multi" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "rawQueryText": "SELECT CAST(strftime('%s', date(started_at)) AS INTEGER) AS time, SUM(status='completed') AS completed, SUM(status='error') AS errors, SUM(status='timeout') AS timeouts FROM goal_runs WHERE julianday(started_at) >= julianday($__from/1000,'unixepoch') AND julianday(started_at) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time", "queryText": "SELECT CAST(strftime('%s', date(started_at)) AS INTEGER) AS time, SUM(status='completed') AS completed, SUM(status='error') AS errors, SUM(status='timeout') AS timeouts FROM goal_runs WHERE julianday(started_at) >= julianday($__from/1000,'unixepoch') AND julianday(started_at) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time" } ]
+    },
+    {
+      "id": 3,
+      "type": "gauge",
+      "title": "Goal-run success rate (14d)",
+      "description": "Share of goal_runs that completed (vs error/timeout) over the last 14 days. The headline reliability number behind the daily-outcomes trend.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 9 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^success_rate$/" }, "showThresholdLabels": false, "showThresholdMarkers": true },
+      "fieldConfig": { "defaults": { "unit": "percent", "decimals": 0, "min": 0, "max": 100, "thresholds": { "mode": "absolute", "steps": [ { "color": "#ef4444", "value": null }, { "color": "#fbbf24", "value": 50 }, { "color": "#4ade80", "value": 80 } ] } } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT ROUND(100.0 * SUM(status='completed') / NULLIF(COUNT(*),0), 1) AS success_rate FROM goal_runs WHERE julianday(started_at) >= julianday($__from/1000,'unixepoch') AND julianday(started_at) < julianday($__to/1000,'unixepoch')", "queryText": "SELECT ROUND(100.0 * SUM(status='completed') / NULLIF(COUNT(*),0), 1) AS success_rate FROM goal_runs WHERE julianday(started_at) >= julianday($__from/1000,'unixepoch') AND julianday(started_at) < julianday($__to/1000,'unixepoch')" } ]
+    },
+    {
+      "id": 4,
+      "type": "barchart",
+      "title": "Goal velocity — completed runs per day (14d)",
+      "description": "Throughput: number of goal_runs that completed each day. A simple velocity signal for how much autonomous goal work is actually landing.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 16, "x": 8, "y": 9 },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "color": { "mode": "fixed", "fixedColor": "#22d3ee" }, "custom": { "fillOpacity": 80, "lineWidth": 1 } } },
+      "options": { "orientation": "vertical", "xField": "day", "showValue": "auto", "legend": { "displayMode": "list", "placement": "bottom" } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT date(started_at) AS day, COUNT(*) AS completed_runs FROM goal_runs WHERE status='completed' AND julianday(started_at) >= julianday($__from/1000,'unixepoch') AND julianday(started_at) < julianday($__to/1000,'unixepoch') GROUP BY day ORDER BY day", "queryText": "SELECT date(started_at) AS day, COUNT(*) AS completed_runs FROM goal_runs WHERE status='completed' AND julianday(started_at) >= julianday($__from/1000,'unixepoch') AND julianday(started_at) < julianday($__to/1000,'unixepoch') GROUP BY day ORDER BY day" } ]
+    },
+    {
+      "id": 5,
+      "type": "table",
+      "title": "Goals (status / cadence / last run)",
+      "description": "Detail view of every goal with its current status, cadence, owner, and last-run outcome. Source: goals + goal_runs.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 17 },
+      "fieldConfig": { "defaults": {}, "overrides": [ { "matcher": { "id": "byName", "options": "status" }, "properties": [ { "id": "custom.cellOptions", "value": { "type": "color-background" } }, { "id": "mappings", "value": [ { "type": "value", "options": { "active": { "color": "#4ade80", "index": 0 }, "proposed": { "color": "#fbbf24", "index": 1 }, "blocked": { "color": "#ef4444", "index": 2 }, "completed": { "color": "#60a5fa", "index": 3 } } } ] } ] }, { "matcher": { "id": "byName", "options": "last_run_status" }, "properties": [ { "id": "custom.cellOptions", "value": { "type": "color-background" } }, { "id": "mappings", "value": [ { "type": "value", "options": { "completed": { "color": "#4ade80", "index": 0 }, "running": { "color": "#fbbf24", "index": 1 }, "timeout": { "color": "#fbbf24", "index": 2 }, "error": { "color": "#ef4444", "index": 3 } } } ] } ] } ] },
+      "options": { "showHeader": true },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT g.id, g.intent, g.status, g.cadence, g.owner_staff_id, g.last_run_at, gr.status AS last_run_status FROM goals g LEFT JOIN goal_runs gr ON gr.id = (SELECT id FROM goal_runs WHERE goal_id=g.id ORDER BY started_at DESC LIMIT 1) ORDER BY CASE g.status WHEN 'blocked' THEN 0 WHEN 'active' THEN 1 WHEN 'proposed' THEN 2 ELSE 3 END, g.last_run_at DESC", "queryText": "SELECT g.id, g.intent, g.status, g.cadence, g.owner_staff_id, g.last_run_at, gr.status AS last_run_status FROM goals g LEFT JOIN goal_runs gr ON gr.id = (SELECT id FROM goal_runs WHERE goal_id=g.id ORDER BY started_at DESC LIMIT 1) ORDER BY CASE g.status WHEN 'blocked' THEN 0 WHEN 'active' THEN 1 WHEN 'proposed' THEN 2 ELSE 3 END, g.last_run_at DESC" } ]
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Goal output verified — pass (range)",
+      "description": "Autonomy goal outputs that passed the LLM-as-judge verification gate before delivery (#tier2). Source: agent_events event='verification_pass'.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 5, "w": 6, "x": 0, "y": 29 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^passed$/" }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "color": { "mode": "fixed", "fixedColor": "#4ade80" } } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT COUNT(*) AS passed FROM agent_events WHERE event='verification_pass' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')", "queryText": "SELECT COUNT(*) AS passed FROM agent_events WHERE event='verification_pass' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')" } ]
+    },
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Goal output verified — fail (range)",
+      "description": "Autonomy goal outputs the verification gate flagged as not accomplishing the task / unsupported (#tier2). Output is still delivered, annotated [unverified]. Source: agent_events event='verification_fail'.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 5, "w": 6, "x": 6, "y": 29 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"], "fields": "/^failed$/" }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "thresholds": { "mode": "absolute", "steps": [ { "color": "#4ade80", "value": null }, { "color": "#fbbf24", "value": 1 }, { "color": "#ef4444", "value": 3 } ] } } },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT COUNT(*) AS failed FROM agent_events WHERE event='verification_fail' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')", "queryText": "SELECT COUNT(*) AS failed FROM agent_events WHERE event='verification_fail' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')" } ]
+    },
+    {
+      "id": 8,
+      "type": "timeseries",
+      "title": "Goal verification outcomes per day",
+      "description": "Daily pass vs fail counts from the autonomy verification gate. Source: agent_events verification_pass / verification_fail.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 29 },
+      "fieldConfig": { "defaults": { "unit": "short", "decimals": 0, "custom": { "drawStyle": "bars", "fillOpacity": 60, "stacking": { "mode": "normal" } } }, "overrides": [ { "matcher": { "id": "byName", "options": "passed" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#4ade80" } } ] }, { "matcher": { "id": "byName", "options": "failed" }, "properties": [ { "id": "color", "value": { "mode": "fixed", "fixedColor": "#ef4444" } } ] } ] },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "time series", "timeColumns": ["time"], "rawQueryText": "SELECT CAST(strftime('%s', date(ts)) AS INTEGER) AS time, SUM(event='verification_pass') AS passed, SUM(event='verification_fail') AS failed FROM agent_events WHERE event IN ('verification_pass','verification_fail') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time", "queryText": "SELECT CAST(strftime('%s', date(ts)) AS INTEGER) AS time, SUM(event='verification_pass') AS passed, SUM(event='verification_fail') AS failed FROM agent_events WHERE event IN ('verification_pass','verification_fail') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time" } ]
+    },
+    {
+      "id": 9,
+      "type": "table",
+      "title": "Recent verification failures",
+      "description": "Most recent autonomy goal outputs flagged by the verification gate, with the critic's reason. Source: agent_events event='verification_fail'.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 37 },
+      "options": { "showHeader": true },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT datetime(ts) AS ts, json_extract(detail,'$.goal_id') AS goal_id, json_extract(detail,'$.issue') AS issue FROM agent_events WHERE event='verification_fail' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY ts DESC LIMIT 50", "queryText": "SELECT datetime(ts) AS ts, json_extract(detail,'$.goal_id') AS goal_id, json_extract(detail,'$.issue') AS issue FROM agent_events WHERE event='verification_fail' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY ts DESC LIMIT 50" } ]
+    },
+    {
+      "id": 10,
+      "type": "table",
+      "title": "Goal verification — skipped (by reason)",
+      "description": "Verifications that rendered NO verdict, broken out by reason (#837). 'disabled' / 'empty_output' are intentional bypasses; 'error' / 'unparseable' mean the critic ran but misbehaved (broken verifier). Logged as verification_skipped so they are NOT counted as passes. Source: agent_events event='verification_skipped'.",
+      "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" },
+      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 45 },
+      "options": { "showHeader": true },
+      "fieldConfig": { "defaults": {}, "overrides": [ { "matcher": { "id": "byName", "options": "reason" }, "properties": [ { "id": "custom.cellOptions", "value": { "type": "color-background" } }, { "id": "mappings", "value": [ { "type": "value", "options": { "disabled": { "color": "#60a5fa", "index": 0 }, "empty_output": { "color": "#60a5fa", "index": 1 }, "error": { "color": "#ef4444", "index": 2 }, "unparseable": { "color": "#ef4444", "index": 3 } } } ] } ] } ] },
+      "targets": [ { "refId": "A", "datasource": { "type": "frser-sqlite-datasource", "uid": "jarvis-sqlite" }, "queryType": "table", "rawQueryText": "SELECT json_extract(detail,'$.reason') AS reason, COUNT(*) AS count, datetime(MAX(ts)) AS last_seen FROM agent_events WHERE event='verification_skipped' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY reason ORDER BY count DESC", "queryText": "SELECT json_extract(detail,'$.reason') AS reason, COUNT(*) AS count, datetime(MAX(ts)) AS last_seen FROM agent_events WHERE event='verification_skipped' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY reason ORDER BY count DESC" } ]
+    }
+  ]
+}

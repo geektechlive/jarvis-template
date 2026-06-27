@@ -1,0 +1,630 @@
+{
+  "uid": "jarvis-routines-approvals",
+  "title": "Jarvis \u2014 Routines & Approvals",
+  "tags": [
+    "jarvis",
+    "observability"
+  ],
+  "timezone": "browser",
+  "style": "dark",
+  "schemaVersion": 39,
+  "version": 3,
+  "refresh": "30s",
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "stat",
+      "title": "Pending approvals",
+      "description": "Approvals awaiting a decision (decided_at IS NULL or decision = 'pending'). Source: approvals table.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^pending$/"
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 1
+              },
+              {
+                "color": "#ef4444",
+                "value": 5
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT COUNT(*) AS pending FROM approvals WHERE decided_at IS NULL OR decision = 'pending'",
+          "queryText": "SELECT COUNT(*) AS pending FROM approvals WHERE decided_at IS NULL OR decision = 'pending'"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Poller fires (24h)",
+      "description": "High-frequency background pollers (resolver_feedback_poll + briefing_drain). Shown as a single health number so they don't drown out scheduled routines. A near-zero value here means the poll loop has stalled.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^poller_fires$/"
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#22d3ee"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT COUNT(*) AS poller_fires FROM agent_events WHERE event='routine_started' AND json_extract(detail,'$.routine') IN ('resolver_feedback_poll','briefing_drain') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')",
+          "queryText": "SELECT COUNT(*) AS poller_fires FROM agent_events WHERE event='routine_started' AND json_extract(detail,'$.routine') IN ('resolver_feedback_poll','briefing_drain') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "type": "piechart",
+      "title": "Approval decisions (14d)",
+      "description": "Distribution of approval outcomes: approved / denied / rejected / expired / pending. Source: approvals table.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        },
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "approved"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#4ade80"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "denied"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#ef4444"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "rejected"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#fbbf24"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "expired"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#a78bfa"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pending"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#60a5fa"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT SUM(decision='approved') AS approved, SUM(decision='denied') AS denied, SUM(decision='rejected') AS rejected, SUM(decision='expired') AS expired, SUM(decision IS NULL OR decision='pending') AS pending FROM approvals WHERE requested_at >= $__from AND requested_at < $__to",
+          "queryText": "SELECT SUM(decision='approved') AS approved, SUM(decision='denied') AS denied, SUM(decision='rejected') AS rejected, SUM(decision='expired') AS expired, SUM(decision IS NULL OR decision='pending') AS pending FROM approvals WHERE requested_at >= $__from AND requested_at < $__to"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "type": "barchart",
+      "title": "Scheduled routine fires (24h, pollers excluded)",
+      "description": "Per-routine firing counts over the last 24h, excluding the two high-frequency pollers (resolver_feedback_poll, briefing_drain) so the real scheduled routines are visible. Source: agent_events routine_started, detail.routine.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#60a5fa"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 1
+          }
+        }
+      },
+      "options": {
+        "orientation": "horizontal",
+        "xField": "routine",
+        "showValue": "auto",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT json_extract(detail,'$.routine') AS routine, COUNT(*) AS fires FROM agent_events WHERE event='routine_started' AND json_extract(detail,'$.routine') NOT IN ('resolver_feedback_poll','briefing_drain') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY routine ORDER BY fires DESC LIMIT 25",
+          "queryText": "SELECT json_extract(detail,'$.routine') AS routine, COUNT(*) AS fires FROM agent_events WHERE event='routine_started' AND json_extract(detail,'$.routine') NOT IN ('resolver_feedback_poll','briefing_drain') AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY routine ORDER BY fires DESC LIMIT 25"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Approval response latency (approved/denied, per day, 14d)",
+      "description": "Average human decision latency per day (decided_at - requested_at), restricted to approved/denied so a batch expiry sweep does not corrupt the trend. requested_at/decided_at are epoch milliseconds. Source: approvals table.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#22d3ee"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2,
+            "showPoints": "always",
+            "pointSize": 6
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "rawQueryText": "SELECT CAST(strftime('%s', date(requested_at/1000,'unixepoch')) AS INTEGER) AS time, AVG(decided_at - requested_at) AS avg_latency FROM approvals WHERE decision IN ('approved','denied') AND decided_at IS NOT NULL AND requested_at >= $__from AND requested_at < $__to GROUP BY time ORDER BY time",
+          "queryText": "SELECT CAST(strftime('%s', date(requested_at/1000,'unixepoch')) AS INTEGER) AS time, AVG(decided_at - requested_at) AS avg_latency FROM approvals WHERE decision IN ('approved','denied') AND decided_at IS NOT NULL AND requested_at >= $__from AND requested_at < $__to GROUP BY time ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "type": "table",
+      "title": "Pending approvals (detail)",
+      "description": "Approval requests still awaiting a decision. requested_at is epoch milliseconds, rendered as UTC datetime. Source: approvals table.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "risk_tier"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "risky": {
+                        "color": "#fbbf24",
+                        "index": 0
+                      },
+                      "safe": {
+                        "color": "#4ade80",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT id, kind, summary, risk_tier, datetime(requested_at/1000,'unixepoch') AS requested_at FROM approvals WHERE decided_at IS NULL OR decision = 'pending' ORDER BY requested_at DESC LIMIT 50",
+          "queryText": "SELECT id, kind, summary, risk_tier, datetime(requested_at/1000,'unixepoch') AS requested_at FROM approvals WHERE decided_at IS NULL OR decision = 'pending' ORDER BY requested_at DESC LIMIT 50"
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "type": "stat",
+      "title": "Routing corrections (range)",
+      "description": "User corrections of a dispatch decision, captured by detectRoutingCorrection (promptPipeline before_prompt). A rising number means Jarvis is routing to the wrong staff. Source: agent_events event='routing_correction'.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 32
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^corrections$/"
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#fbbf24",
+                "value": 1
+              },
+              {
+                "color": "#ef4444",
+                "value": 5
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT COUNT(*) AS corrections FROM agent_events WHERE event='routing_correction' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')",
+          "queryText": "SELECT COUNT(*) AS corrections FROM agent_events WHERE event='routing_correction' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "type": "stat",
+      "title": "Routing corrections dropped (range)",
+      "description": "Routing corrections that failed to persist to the knowledge collection (vec-server down/timeout). Source: agent_events event='routing_correction_dropped'.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 32
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "/^dropped$/"
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4ade80",
+                "value": null
+              },
+              {
+                "color": "#ef4444",
+                "value": 1
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT COUNT(*) AS dropped FROM agent_events WHERE event='routing_correction_dropped' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')",
+          "queryText": "SELECT COUNT(*) AS dropped FROM agent_events WHERE event='routing_correction_dropped' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch')"
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "type": "timeseries",
+      "title": "Routing corrections per day",
+      "description": "Daily count of user routing corrections. Source: agent_events event='routing_correction'.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60
+          },
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "#fbbf24"
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "time series",
+          "timeColumns": [
+            "time"
+          ],
+          "rawQueryText": "SELECT CAST(strftime('%s', date(ts)) AS INTEGER) AS time, COUNT(*) AS corrections FROM agent_events WHERE event='routing_correction' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time",
+          "queryText": "SELECT CAST(strftime('%s', date(ts)) AS INTEGER) AS time, COUNT(*) AS corrections FROM agent_events WHERE event='routing_correction' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') GROUP BY time ORDER BY time"
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "type": "table",
+      "title": "Recent routing corrections",
+      "description": "Most recent routing corrections: the staff that was wrongly dispatched (corrected_from) and the user's correction text. Source: agent_events event='routing_correction'.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "rawQueryText": "SELECT datetime(ts) AS ts, json_extract(detail,'$.corrected_from') AS corrected_from, json_extract(detail,'$.correction') AS correction FROM agent_events WHERE event='routing_correction' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY ts DESC LIMIT 50",
+          "queryText": "SELECT datetime(ts) AS ts, json_extract(detail,'$.corrected_from') AS corrected_from, json_extract(detail,'$.correction') AS correction FROM agent_events WHERE event='routing_correction' AND julianday(ts) >= julianday($__from/1000,'unixepoch') AND julianday(ts) < julianday($__to/1000,'unixepoch') ORDER BY ts DESC LIMIT 50"
+        }
+      ]
+    }
+  ]
+}

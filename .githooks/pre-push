@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+# Pre-push gate for the Jarvis repo.
+#
+# This repo commits directly to main with no CI on the Python/TS code, so this
+# hook is the enforcement point: it runs the full local check suite (ruff +
+# pyright over harness/ tools-py/ scripts/ tests/, harness-ts eslint + tsc,
+# pytest + vitest, validate-staff) before any push is allowed.
+#
+# Install once per clone:  make hooks   (sets core.hooksPath -> .githooks)
+# Bypass intentionally:    git push --no-verify   (use sparingly)
+
+set -euo pipefail
+
+repo_root="$(git rev-parse --show-toplevel)"
+cd "$repo_root"
+
+# Skip the heavy suite when this push only DELETES refs -- there's no new code to
+# validate, so running the full check on a branch deletion is pure waste. Git feeds
+# ref updates on stdin as: <local_ref> <local_sha> <remote_ref> <remote_sha>, and a
+# deletion carries an all-zero local_sha. The saw_line guard avoids skipping when
+# stdin is empty (which would otherwise bypass the gate).
+only_deletes=1
+saw_line=0
+while read -r _local_ref local_sha _remote_ref _remote_sha; do
+  saw_line=1
+  case "$local_sha" in
+    *[!0]*) only_deletes=0 ;;  # any non-zero char -> a real (non-delete) update
+  esac
+done
+if [ "$saw_line" -eq 1 ] && [ "$only_deletes" -eq 1 ]; then
+  echo "[pre-push] delete-only push, skipping make check."
+  exit 0
+fi
+
+echo "[pre-push] running make check ..."
+if ! make check; then
+  echo ""
+  echo "[pre-push] BLOCKED: make check failed. Fix the issues above, or push with"
+  echo "[pre-push] --no-verify if you intend to bypass the gate."
+  exit 1
+fi
+echo "[pre-push] make check passed -- pushing."

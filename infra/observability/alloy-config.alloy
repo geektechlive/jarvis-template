@@ -1,0 +1,221 @@
+// Deployed & verified live on the M2 Mini (2026-06-22).
+// Grafana Alloy River config — Jarvis observability pipeline.
+// Tails service logs + ion telemetry and ships to Loki at 127.0.0.1:3100.
+//
+// Alloy UI (for debug/reload): http://127.0.0.1:12345 (localhost only, not LAN-facing).
+// All paths are Mini-absolute for user <username>. Alloy does NOT expand ~.
+//
+// Rollback: `launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.example.alloy.plist`
+// Alloy is stateless for tailing purposes; restarting picks up from WAL (--storage.path).
+//
+// Label cardinality discipline:
+//   stage.labels     — only low-cardinality, enumerable values (service, level)
+//   stage.structured_metadata — high-cardinality or numeric (turns, cost_str, elapsed_ms)
+// Mixing these up causes Loki cardinality explosions.
+
+// ---------------------------------------------------------------------------
+// 1. FILE MATCH — one explicit target per log file, labelled by service.
+//    Explicit file list (not a glob) to prevent tailing Loki/Alloy's own
+//    *.out.log output files, which would create a feedback loop.
+// ---------------------------------------------------------------------------
+
+local.file_match "jarvis_logs" {
+  path_targets = [
+    // ion engine — contains "run complete:" cost/turns/elapsed lines
+    {
+      "__path__" = "/Users/<username>/.ion/engine.log",
+      "service"  = "ion-engine",
+    },
+    // ion secondary log (harness-ts runtime messages)
+    {
+      "__path__" = "/Users/<username>/Jarvis/logs/ion.log",
+      "service"  = "ion-harness",
+    },
+    // Vector/recall tool server
+    {
+      "__path__" = "/Users/<username>/Jarvis/logs/vector.error.log",
+      "service"  = "vec-server",
+    },
+    // Kokoro TTS voice server
+    // NOTE: voice-tts is not currently deployed on the Mini, so this file does
+    // not exist — this tail target is presently a dead path. Harmless: Alloy
+    // self-heals (local.file_match yields zero targets) and picks it up if the
+    // file appears once voice-tts is deployed. Left in deliberately.
+    {
+      "__path__" = "/Users/<username>/Jarvis/logs/voice.error.log",
+      "service"  = "voice-tts",
+    },
+    // Discord bot
+    {
+      "__path__" = "/Users/<username>/Jarvis/logs/discord-bot.error.log",
+      "service"  = "discord-bot",
+    },
+    // Orchestration / agent runner
+    {
+      "__path__" = "/Users/<username>/Jarvis/logs/agent.error.log",
+      "service"  = "agent",
+    },
+    // iMessage bridge
+    {
+      "__path__" = "/Users/<username>/Jarvis/logs/imessage.error.log",
+      "service"  = "imessage",
+    },
+  ]
+}
+
+// ion telemetry JSONL — separate match so it gets its own loki.process pipeline.
+// LIVE: engine.json sets telemetry.enabled=true (file target ~/.ion/telemetry.jsonl)
+// and the ion-telemetry service label is confirmed receiving in Loki.
+// NOTE: local.file_match is glob-based. A literal path that matches no file yields
+// zero targets silently — Alloy does NOT error. It self-heals when the file appears.
+local.file_match "ion_telemetry" {
+  path_targets = [
+    {
+      "__path__" = "/Users/<username>/.ion/telemetry.jsonl",
+      "service"  = "ion-telemetry",
+    },
+  ]
+}
+
+// ---------------------------------------------------------------------------
+// 2. SOURCE — tail the files and forward to processing pipelines.
+// ---------------------------------------------------------------------------
+
+loki.source.file "service_logs" {
+  targets    = local.file_match.jarvis_logs.targets
+  forward_to = [loki.process.service_logs.receiver]
+}
+
+loki.source.file "telemetry_jsonl" {
+  targets    = local.file_match.ion_telemetry.targets
+  forward_to = [loki.process.ion_telemetry.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// 3. PROCESS — service logs pipeline.
+//
+// Stage execution order matters: regex before labels that reference its groups.
+//
+// "service" label is already set via local.file_match path_targets extra keys;
+// it is promoted to a real Loki label via stage.labels below.
+// ---------------------------------------------------------------------------
+
+loki.process "service_logs" {
+  // 3a. Promote the "service" key from the file match target into a Loki label.
+  stage.labels {
+    values = {
+      "service" = "",
+    }
+  }
+
+  // 3b. Detect log level from any service log line via a universal bracketed token.
+  //     All Jarvis services now emit a bracketed level token anywhere in the line:
+  //       [ERROR], [WARN], [WARNING], [INFO], [DEBUG], [CRITICAL], [FATAL]
+  //     RE2 named group (?P<level>...) extracts directly into the map as "level".
+  //     Case-fold flag (?i) normalises [ERROR]/[error]/[Error] to the same match.
+  //     "warning" listed before "warn" so the longer alternative is tried first.
+  stage.regex {
+    expression = "(?i)\\[(?P<level>error|warning|warn|critical|fatal|info|debug)\\]"
+  }
+
+  // Normalise level to lowercase so LogQL works without ToLower() in queries.
+  // stage.template reads from and overwrites the extracted map key "level".
+  // ToLower is a confirmed Alloy template function (text/template with extras).
+  stage.template {
+    source   = "level"
+    template = "{{ ToLower .Value }}"
+  }
+
+  // Promote the normalised "level" to a Loki stream label.
+  stage.labels {
+    values = {
+      "level" = "",
+    }
+  }
+
+  // 3c. For ion-engine lines only: extract run complete metrics.
+  //     Line format: "run complete: runID=… turns=12 cost=$0.0345 elapsed=1234ms sessionID=…"
+  //     turns and elapsed are integers (low-ish cardinality but session-scoped — treat as
+  //     structured_metadata, not labels, to avoid cardinality explosion).
+  //     cost_str is the raw string (e.g. "$0.0345") — kept as string to avoid float precision
+  //     issues at the label layer; convert in Grafana panels if numeric math is needed.
+  stage.regex {
+    expression = "run complete:.*turns=(?P<turns>\\d+).*cost=\\$(?P<cost_str>[0-9.]+).*elapsed=(?P<elapsed_ms>\\d+)ms"
+  }
+
+  stage.structured_metadata {
+    values = {
+      "turns"      = "",
+      "cost_str"   = "",
+      "elapsed_ms" = "",
+    }
+  }
+
+  forward_to = [loki.write.local_loki.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// 4. PROCESS — ion telemetry JSONL pipeline.
+//    Each line is a JSON object (llm.call / tool.execute spans).
+//    Parse the JSON, promote "kind" (span type) as a label, everything else
+//    goes to structured_metadata to avoid cardinality explosion.
+//
+//    JSON field mapping below is confirmed against the live ~/.ion/telemetry.jsonl
+//    on the Mini: the event type is the top-level "name"; detail fields are nested
+//    under "payload" (JMESPath: payload.model, payload.tool, etc.).
+// ---------------------------------------------------------------------------
+
+loki.process "ion_telemetry" {
+  // Promote service label from path_targets.
+  stage.labels {
+    values = {
+      "service" = "",
+    }
+  }
+
+  // Parse the JSONL line as JSON. Extracts all top-level keys into the map.
+  // Confirmed against the live ~/.ion/telemetry.jsonl on the Mini.
+  // ion telemetry line shape: {"name":"llm.call","timestamp":..,"payload":{model,tool,
+  // durationMs,turn,stopReason,error}}. The event type is the top-level "name"; the
+  // detail fields are nested under "payload" (JMESPath: payload.model).
+  stage.json {
+    expressions = {
+      "kind"        = "name",
+      "model"       = "payload.model",
+      "tool"        = "payload.tool",
+      "error"       = "payload.error",
+      "stop_reason" = "payload.stopReason",
+      "duration_ms" = "payload.durationMs",
+    }
+  }
+
+  // "kind" (llm.call / tool.execute) is low-cardinality — safe as a label.
+  stage.labels {
+    values = {
+      "kind" = "",
+    }
+  }
+
+  // detail fields are higher-cardinality — structured_metadata, not labels.
+  stage.structured_metadata {
+    values = {
+      "model"       = "",
+      "tool"        = "",
+      "error"       = "",
+      "stop_reason" = "",
+      "duration_ms" = "",
+    }
+  }
+
+  forward_to = [loki.write.local_loki.receiver]
+}
+
+// ---------------------------------------------------------------------------
+// 5. WRITE — ship everything to local Loki.
+// ---------------------------------------------------------------------------
+
+loki.write "local_loki" {
+  endpoint {
+    url = "http://127.0.0.1:3100/loki/api/v1/push"
+  }
+}

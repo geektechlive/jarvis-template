@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  launchd agent for the Jarvis Discord bot — installs to:
+    ~/Library/LaunchAgents/com.example.jarvis.discord-bot.plist
+
+  Provides Discord integration for Jarvis. Bot token, webhook URL, and owner ID
+  are stored in the macOS keychain at runtime.
+
+  Install:
+    cp com.example.jarvis.discord-bot.plist ~/Library/LaunchAgents/
+    bash scripts/setup-discord-bot.sh
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.example.jarvis.discord-bot.plist
+
+  Check status:
+    launchctl list | grep discord-bot
+
+  View logs:
+    tail -f ~/Jarvis/logs/discord-bot.error.log
+-->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.example.jarvis.discord-bot</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/opt/homebrew/bin/node</string>
+        <string>/Users/<username>/Jarvis/harness-ts/dist/discord-bot.js</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/<username>/Jarvis</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key>
+        <string>/Users/<username></string>
+        <key>AGENT_DATA_DIR</key>
+        <string>/Users/<username>/.jarvis</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/<username>/Jarvis/logs/discord-bot.out.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/<username>/Jarvis/logs/discord-bot.error.log</string>
+</dict>
+</plist>

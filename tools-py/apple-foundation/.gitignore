@@ -1,0 +1,3 @@
+# SwiftPM build artifacts (rebuilt on the Mini at deploy time)
+.build/
+Package.resolved

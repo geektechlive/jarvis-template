@@ -1,0 +1,19 @@
+# Latency budgets by phase (W6).
+# record_perf() in episodic.py logs measurements; perf_report.py compares against these.
+# All values in milliseconds, P95.
+
+budgets:
+  # Intent classification (router model, fast path)
+  intent: 3000
+
+  # Vector recall alone (embedding + ChromaDB query)
+  recall: 1500
+
+  # Embedding only (nomic-embed-text, should be sub-200ms with dedicated instance)
+  embed: 200
+
+  # Full interactive chat turn (intent + recall + LLM response)
+  chat: 8000
+
+  # Tool-using staff turn (includes tool-call loop iterations)
+  tool_turn: 30000

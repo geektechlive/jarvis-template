@@ -1,0 +1,121 @@
+{
+  "uid": "jarvis-system-map",
+  "title": "Jarvis \u2014 System Map",
+  "tags": [
+    "jarvis",
+    "observability",
+    "topology"
+  ],
+  "timezone": "browser",
+  "style": "dark",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "hours",
+        "label": "Window (hours)",
+        "type": "textbox",
+        "query": "6",
+        "current": {
+          "text": "6",
+          "value": "6"
+        },
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "grafana-graphviz-panel",
+      "title": "Jarvis system architecture \u2014 live health (M2 / M4 + services + data flow)",
+      "description": "Diagram-as-code (Graphviz DOT). M2 service nodes are colored by live host_health (green ok / amber warn / red down), matched node-id to service name; ${status} injected into labels. Neutral nodes (data stores, observability stack, external) are not health-probed. Refresh 30s.",
+      "datasource": {
+        "type": "frser-sqlite-datasource",
+        "uid": "jarvis-sqlite"
+      },
+      "gridPos": {
+        "h": 26,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "options": {
+        "inputMode": "code",
+        "layoutEngine": "dot",
+        "rankDirection": "LR",
+        "dotDiagram": "digraph jarvis_arch {\n  rankdir=LR; bgcolor=\"transparent\"; compound=true; pad=0.4; nodesep=0.28; ranksep=1.0;\n  fontname=\"Helvetica\"; fontcolor=\"#8b949e\"; labelloc=\"t\"; fontsize=14;\n  node [style=\"filled,rounded\", shape=box, fontname=\"Helvetica\", fontcolor=\"#e6edf3\", color=\"#2a2d3a\", fillcolor=\"#1b1f2a\", fontsize=10, margin=\"0.11,0.06\"];\n  edge [color=\"#3a3f4b\", fontcolor=\"#8b949e\", fontname=\"Helvetica\", fontsize=9];\n\n  subgraph cluster_clients {\n    label=\"Clients\"; style=\"rounded,filled\"; fillcolor=\"#0f1320\"; color=\"#2a2d3a\"; fontcolor=\"#8b949e\";\n    iphone [label=\"iPhone\\n(Jarvis app)\", fillcolor=\"#1f3a6b\"];\n  }\n\n  subgraph cluster_m4 {\n    label=\"M4 Mini  <m4-mini-ip>\"; style=\"rounded,filled\"; fillcolor=\"#0f1320\"; color=\"#2a2d3a\"; fontcolor=\"#00d4ff\";\n    desktop [label=\"Ion Desktop\", fillcolor=\"#1f3a6b\"];\n  }\n\n  subgraph cluster_m2 {\n    label=\"M2 Mini  <mac-mini-ip>  (health-colored)\"; style=\"rounded,filled\"; fillcolor=\"#0f1320\"; color=\"#2a2d3a\"; fontcolor=\"#00d4ff\";\n\n  \"ion\" [label=\"ion engine  :21017\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"vector\" [label=\"vec-server  :9876\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"apple-foundation\" [label=\"apple-foundation  :9878\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"discord-bot\" [label=\"discord-bot\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"imessage\" [label=\"imessage\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"ion-relay\" [label=\"ion-relay  :8443\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"cloudflared\" [label=\"cloudflared\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"ollama\" [label=\"Ollama embed  :11435\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"deploy-watchdog\" [label=\"deploy-watchdog\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"log-patrol\" [label=\"log-patrol\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"nas-mount\" [label=\"nas-mount\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"disk\" [label=\"disk\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"routines\" [label=\"scheduler routines\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n  \"runaway\" [label=\"runaway guard\\n${status}\", fillcolor=\"${fillcolor}\", fontcolor=\"#ffffff\"];\n\n    // structural (not health-probed) \u2014 neutral\n    chroma [label=\"ChromaDB\", shape=cylinder, fillcolor=\"#16241b\"];\n    neo4j  [label=\"Neo4j / Graphiti\", shape=cylinder, fillcolor=\"#16241b\"];\n    sqlite [label=\"SQLite\\n~/.jarvis\", shape=cylinder, fillcolor=\"#16241b\"];\n    alloy  [label=\"Alloy\\n:12345\", fillcolor=\"#243044\"];\n    loki   [label=\"Loki\\n:3100\", shape=cylinder, fillcolor=\"#16241b\"];\n    grafana[label=\"Grafana\\n:3000\", fillcolor=\"#243044\"];\n  }\n\n  subgraph cluster_ext {\n    label=\"External\"; style=\"rounded,filled\"; fillcolor=\"#0f1320\"; color=\"#2a2d3a\"; fontcolor=\"#8b949e\";\n    nas [label=\"NAS  <nas-ip>\", shape=box3d, fillcolor=\"#241b16\"];\n    claude [label=\"Anthropic\\nClaude (CLI)\", fillcolor=\"#2a1f3a\"];\n    openrouter [label=\"OpenRouter\", fillcolor=\"#2a1f3a\"];\n    cflare [label=\"Cloudflare\\nrelay.<your-domain>\", fillcolor=\"#2a1f3a\"];\n  }\n\n  subgraph cluster_legend {\n    label=\"Health\"; style=\"rounded,filled\"; fillcolor=\"#0f1320\"; color=\"#2a2d3a\"; fontcolor=\"#8b949e\"; rank=sink;\n    lg_ok [label=\"ok\", fillcolor=\"#1a7f37\", fontcolor=\"#ffffff\"];\n    lg_wn [label=\"warn\", fillcolor=\"#9e6a03\", fontcolor=\"#ffffff\"];\n    lg_dn [label=\"down\", fillcolor=\"#a40e26\", fontcolor=\"#ffffff\"];\n    lg_ok -> lg_wn -> lg_dn [style=invis];\n  }\n\n  // client paths\n  iphone -> desktop [label=\"Bonjour (LAN)\"];\n  iphone -> cflare [label=\"WAN\", style=dashed];\n  cflare -> cloudflared [label=\"tunnel\"];\n  cloudflared -> \"ion-relay\"; \"ion-relay\" -> ion [label=\"ws\"];\n  desktop -> ion [label=\"LAN :21017\"];\n\n  // reasoning\n  ion -> claude [label=\"reasoning\"];\n  ion -> openrouter [style=dashed, label=\"some staff\"];\n  ion -> \"apple-foundation\" [label=\"on-device\", style=dashed];\n\n  // memory\n  ion -> vector [label=\"recall / remember\"];\n  vector -> chroma; vector -> neo4j; vector -> sqlite;\n  vector -> ollama [label=\"embeddings\"];\n  ollama -> nas [style=dotted, label=\"hosted on\"];\n  ion -> sqlite [label=\"events / history\"];\n\n  // scheduler + guards (logical, inside ion)\n  ion -> routines [style=dashed]; ion -> runaway [style=dashed];\n\n  // channels\n  \"discord-bot\" -> ion; imessage -> ion;\n\n  // ops / automation\n  \"deploy-watchdog\" -> ion [style=dotted, label=\"redeploy\"];\n  \"log-patrol\" -> sqlite [style=dotted];\n  \"nas-mount\" -> nas [style=dotted];\n\n  // observability\n  ion -> alloy [style=dotted]; vector -> alloy [style=dotted]; \"ion-relay\" -> alloy [style=dotted];\n  alloy -> loki [label=\"logs\"]; loki -> grafana; sqlite -> grafana [label=\"SQLite ds\"]; disk -> sqlite [style=dotted];\n}"
+      },
+      "targets": [
+        {
+          "refId": "H",
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "jarvis-sqlite"
+          },
+          "queryType": "table",
+          "queryText": "SELECT h.service AS id, CASE h.status WHEN 'ok' THEN '#1a7f37' WHEN 'warn' THEN '#9e6a03' WHEN 'down' THEN '#a40e26' ELSE '#30363d' END AS fillcolor, h.status AS status FROM host_health h JOIN (SELECT service, MAX(ts) mx FROM host_health GROUP BY service) m ON h.service=m.service AND h.ts=m.mx",
+          "rawQueryText": "SELECT h.service AS id, CASE h.status WHEN 'ok' THEN '#1a7f37' WHEN 'warn' THEN '#9e6a03' WHEN 'down' THEN '#a40e26' ELSE '#30363d' END AS fillcolor, h.status AS status FROM host_health h JOIN (SELECT service, MAX(ts) mx FROM host_health GROUP BY service) m ON h.service=m.service AND h.ts=m.mx"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "grafana-graphviz-panel",
+      "title": "Staff dispatch tree \u2014 last ${hours}h (5s refresh)",
+      "description": "Live top-down map (rankdir=TB) of which staff agents Jarvis has dispatched in the window: Jarvis at the root, edge thickness scaled by dispatch count. Source: agent_events 'subagent_dispatch' \u2192 vec-server /topology?format=dot \u2192 rendered by the Graphviz panel (Query mode). Polls every 5s. Widen the Window (hours) variable to see a longer history.",
+      "datasource": {
+        "type": "yesoreyeram-infinity-datasource",
+        "uid": "infinity"
+      },
+      "gridPos": {
+        "h": 30,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "options": {
+        "inputMode": "query",
+        "layoutEngine": "dot",
+        "rankDirection": "TB",
+        "dotQueryConfig": {
+          "fieldName": "dot_diagram"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "yesoreyeram-infinity-datasource",
+            "uid": "infinity"
+          },
+          "type": "json",
+          "source": "url",
+          "parser": "backend",
+          "format": "table",
+          "url": "http://127.0.0.1:9876/topology?hours=${hours}&format=dot",
+          "url_options": {
+            "method": "GET"
+          },
+          "root_selector": "",
+          "columns": [
+            {
+              "selector": "dot",
+              "text": "dot_diagram",
+              "type": "string"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

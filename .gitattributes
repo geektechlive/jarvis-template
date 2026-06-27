@@ -1,0 +1,4 @@
+# Keep the template-build tooling (which contains real personal values in its
+# substitution manifest) out of any `git archive` export, including the archive
+# used to build the public template itself.
+scripts/build-template/ export-ignore

@@ -1,0 +1,280 @@
+# Proactive routine settings. Enable individually and restart to activate.
+# On-demand: /brief works regardless of the enabled flag.
+
+# Feature flag: when true, scheduled routines with ephemeral:true route extractions
+# to task_memory instead of knowledge. Default false (shadow mode until validated).
+ephemeral_memory_enabled: true
+working_memory_enabled: true
+entity_batching_enabled: true
+
+# Quiet hours window (24-hour format, CT). Interval jobs skip unless ignore_quiet_hours: true.
+# Default: 23:00 (quiet start) to 06:00 (quiet end, exclusive).
+quiet_hours_start: 23
+quiet_hours_end: 6
+
+routines:
+  morning_brief:
+    enabled: true
+    ephemeral: true
+    time: "07:30"
+    writes_chain_context: true
+    description: "Daily morning brief -- calendar, open mail, open items."
+  midday_checkin:
+    enabled: true
+    ephemeral: true
+    time: "13:00"
+    description: "Mid-day summary of unresolved triage items (question/review)."
+  triage_check:
+    enabled: true
+    ephemeral: true
+    time: "12:00"
+    description: "Daily triage check -- open issues missing severity or milestone, posted to Discord."
+  meeting_prep:
+    enabled: true
+    ephemeral: true
+    interval_minutes: 5
+    description: "Pre-meeting brief fired 10 minutes before calendar events."
+  proactive_check:
+    enabled: true
+    interval_minutes: 5
+    description: "Proactive trigger engine -- checks thresholds every 5 min and pushes to #jarvis-proactive."
+  evening_journal:
+    enabled: true
+    ephemeral: true
+    time: "21:00"
+    description: "Evening journal surfaced to inbox (journal always writes; this gates delivery)."
+  overnight_reflection:
+    enabled: true
+    ephemeral: true
+    time: "03:00"
+    writes_chain_context: true
+    description: "Wakes Jarvis at 03:00 with an open prompt; he decides whether to call run_reflection."
+  weekly_curator:
+    enabled: true
+    ephemeral: true
+    day: "monday"
+    time: "08:15"
+    description: "Weekly knowledge-pattern summary."
+  wellness_checkin:
+    enabled: true
+    ephemeral: true
+    day: "monday"
+    time: "10:00"
+    description: "Wellness Coach check-in on calendar density, energy patterns, and wellbeing (Mon + Thu)."
+  wellness_checkin_thu:
+    enabled: true
+    ephemeral: true
+    day: "thursday"
+    time: "09:40"
+    description: "Thursday Wellness Coach check-in -- independently gated by this key; wellness_checkin controls Monday only."
+  daily_newsdesk:
+    enabled: true
+    time: "08:30"
+    description: "Daily news digest -- fresh items from the news collection pushed to Discord."
+  weekly_newsdesk:
+    enabled: true
+    ephemeral: true
+    day: "friday"
+    time: "15:00"
+    description: "Weekly News Desk observer -- topics Alex asked about, noteworthy developments."
+  tech_advisor_watch:
+    enabled: true
+    ephemeral: true
+    day: "thursday"
+    time: "09:10"
+    description: "Tech Advisor weekly observer -- recurring tech topics, deferred tech decisions."
+  security_watch:
+    enabled: true
+    ephemeral: true
+    day: "thursday"
+    time: "09:30"
+    description: "Security Analyst weekly scan -- CVE checks on active dependencies, credential leak detection, OSINT review."
+  cfo_watch:
+    enabled: true
+    ephemeral: true
+    day: "friday"
+    time: "09:00"
+    description: "CFO weekly scan -- new charges, uncategorized subscriptions, spend patterns."
+  portfolio_watch:
+    enabled: true
+    ephemeral: true
+    time: "09:25"
+    description: "Portfolio Manager daily scan -- significant moves (>2%), breaking news on held tickers, risk flags."
+  comms_pulse:
+    enabled: true
+    ephemeral: true
+    interval_minutes: 15
+    max_run_ms: 300000
+    writes_chain_context: true
+    description: "Chief of Communications pulse -- scan inbound mail and comms; surface urgent items immediately, queue notable ones for brief."
+  github_watch:
+    enabled: true
+    ephemeral: true
+    time: "09:00"
+    description: "Daily Repo Steward scan -- open PRs, failing CI, new issues on active repos."
+  intervention_digest:
+    enabled: true
+    time: "09:05"
+    description: "Daily Discord digest of patrol issues needing human action -- stuck issues, pending approvals, recent failures."
+  milestone_sweep:
+    enabled: true
+    time: "09:30"
+    description: "Daily sweep to auto-assign unmilestoned jarvis-patrol issues to their milestone"
+  infra_watch:
+    enabled: true
+    ephemeral: true
+    time: "09:15"
+    description: "Systems Engineer daily check -- Cloudflare zone health and UniFi network status."
+  discord_pulse:
+    enabled: false
+    interval_minutes: 20
+    description: "Chief of Communications Discord pulse -- scan watched channels/DMs for urgent or notable messages."
+  memory_consolidation:
+    enabled: true
+    time: "02:00"
+    max_run_ms: 600000
+    description: "Nightly memory consolidation -- session summaries, cross-session synthesis, dedup, decay."
+  vault_export:
+    enabled: true
+    time: "03:30"
+    description: "Nightly vault export -- writes all three memory collections to iCloud-backed markdown files for human-readable review."
+  chain_miner:
+    enabled: true
+    time: "06:00"
+    max_run_ms: 600000
+    writes_chain_context: true
+    description: "Daily handoff-chain mining -- scans agent_events for A→B dispatch patterns and writes chain hints to memory once a pair crosses 3 confirmed user-driven instances."
+  goal_proposal:
+    enabled: true
+    day: "monday"
+    time: "06:10"
+    description: "Autonomous goal proposal engine -- queries recall patterns and user profile to propose and activate new recurring goals (max 3/run, max 10 active total)."
+  projects_refresh:
+    enabled: true
+    day: "monday"
+    time: "06:30"
+    description: "Weekly refresh of PROJECTS.md last-pushed dates and tier categorization from GitHub."
+  self_improvement:
+    enabled: false
+    interval_minutes: 2880
+    description: "Self-improvement loop every 48 hours -- proposes one config or identity file improvement and pushes an auto/improve-* branch for CI review."
+  staff_tools_sync:
+    enabled: true
+    interval_minutes: 60
+    description: "Hourly: PR any untracked staff-tools/ files (agent-created tools) to origin via a /tmp worktree, then remove the local copies so the watchdog pull stays clean. No-ops when staff-tools/ is clean."
+  rss_fetch:
+    enabled: true
+    ephemeral: true
+    interval_minutes: 360
+    description: "Fetch configured RSS feeds and store notable items to knowledge for News Desk."
+  netflix_history_sync:
+    enabled: true
+    day: "sunday"
+    time: "10:00"
+    description: "Weekly Sunday Netflix history sync -- fetch viewing history and dispatch Entertainment Advisor to update taste profile."
+  findings_dispatcher:
+    enabled: true
+    ephemeral: true
+    ignore_quiet_hours: true
+    interval_minutes: 10
+    description: "Drains the findings queue and routes by criticality (critical → push + brief, important → bundled push + brief, informational → brief only)."
+  # NOTE: autonomy is NOT a scheduler job and is never registered in buildJobs().
+  # It is managed entirely by harness-ts/src/autonomy/index.ts, which runs its own
+  # polling loop independent of the scheduler. This entry is informational only --
+  # the enabled flag is read directly by the autonomy module, not the scheduler.
+  autonomy:
+    enabled: true
+    # interval_minutes and max_run_ms are consumed by the autonomy module, not the scheduler.
+    interval_minutes: 1
+    max_run_ms: 300000
+    description: "Always-on goal pursuit worker (idle-triggered). Managed by autonomy module, not scheduler."
+  log_patrol:
+    enabled: true
+    ephemeral: true
+    interval_minutes: 480
+    max_run_ms: 540000
+    description: "Automated log patrol -- scans runtime error logs for real errors and files GitHub issues labeled bug."
+  commit_patrol:
+    enabled: true
+    ephemeral: true
+    interval_minutes: 485
+    max_run_ms: 540000
+    description: "Automated commit patrol -- reviews recent commits for code quality problems or regressions and files GitHub issues."
+  issue_patrol:
+    enabled: true
+    ephemeral: true
+    interval_minutes: 490
+    max_run_ms: 540000
+    description: "Automated issue patrol -- triages existing open jarvis-patrol issues, closes resolved or stale ones. Does not file new issues."
+  improve_patrol:
+    enabled: true
+    ephemeral: true
+    interval_minutes: 495
+    max_run_ms: 540000
+    description: "Automated improvement patrol -- reviews system config and identity files for gaps and files enhancement issues."
+  stale_approval_scan:
+    enabled: true
+    ephemeral: true
+    time: "10:05"
+    max_run_ms: 120000
+    description: "Daily stale-approval scan -- surfaces proposed actions older than 7 days awaiting approval."
+  issue_resolver:
+    enabled: true
+    interval_minutes: 240
+    max_run_ms: 2000000
+    description: "Autonomous issue resolver -- picks a jarvis-auto labeled GitHub issue, implements a fix, validates with make check, and pushes directly to main."
+  contacts_pulse:
+    enabled: true
+    ephemeral: true
+    day: "monday"
+    time: "09:05"
+    description: "Weekly contacts scan -- surface upcoming birthdays/anniversaries and overdue relationships."
+  home_maintenance_check:
+    enabled: true
+    ephemeral: true
+    day: "monday"
+    time: "11:00"
+    description: "Weekly Home/Property Manager sweep -- surface overdue maintenance items from property.yaml."
+  commit_activity_summary:
+    enabled: true
+    ephemeral: true
+    day: "friday"
+    time: "10:00"
+    description: "Weekly commit activity summary -- Chief of Strategy convenes Repo Steward to review recent commits across all Source projects (Jarvis, ion, <your-org>-www, example-app, example-app, ExampleApp, example-app, etc.): what moved in the last week, what stalled, what has not been touched in two weeks. Synthesis surfaced to inbox."
+  weekly_entertainment:
+    enabled: true
+    ephemeral: true
+    day: "friday"
+    time: "17:00"
+    description: "Entertainment Advisor weekly brief -- new releases and recommendations matching taste profile."
+  relay_health_check:
+    enabled: true
+    ephemeral: true
+    interval_minutes: 240
+    description: "End-to-end relay health check -- Observability Watcher verifies cloudflared tunnel status, ion-relay binding on 127.0.0.1:8443, and presence of a valid push-channel token. Any failure surfaces immediately as an inbox item."
+  weekly_doc_triage:
+    enabled: true
+    ephemeral: true
+    day: "saturday"
+    time: "10:00"
+    description: "Document Steward weekly triage -- Downloads aging, large files, recent iCloud activity."
+  resolver_feedback_poll:
+    enabled: true
+    ignore_quiet_hours: true
+    interval_minutes: 1
+    max_run_ms: 55000
+    description: "Polls vec-server for watchdog deploy outcomes after resolver pushes -- logs resolver_shipped, resolver_failed (reopens issue + Discord notify), or resolver_unknown. Always-on (24/7)."
+  daily_summary:
+    enabled: true
+    time: "02:05"
+    description: "Nightly cross-session digest -- what Jarvis and Alex discussed, worked on, and what staff surfaced today. Stored for prompt injection and morning brief."
+  weekly_summary:
+    enabled: true
+    day: "monday"
+    time: "07:10"
+    description: "Weekly narrative synthesized from daily summaries -- decisions, patterns, notable work over the past 7 days."
+  monthly_summary:
+    enabled: true
+    day: "monday"
+    time: "06:50"
+    description: "Monthly synthesis of weekly summaries -- high-level themes and notable changes from the past month. Only runs in the first 7 days of the month."

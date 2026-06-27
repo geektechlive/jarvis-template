@@ -1,0 +1,20 @@
+# Deployed & verified live on the M2 Mini (2026-06-22).
+# Grafana dashboard provider for the Jarvis observability stack.
+#
+# Grafana watches the `path` directory and loads any .json files it finds.
+# 11 dashboards are currently provisioned from the path below.
+#
+# Rollback: comment out or remove this file; restart Grafana.
+
+apiVersion: 1
+
+providers:
+  - name: Jarvis Dashboards
+    orgId: 1
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /Users/<username>/Jarvis/infra/observability/grafana/dashboards
+      foldersFromFilesStructure: false

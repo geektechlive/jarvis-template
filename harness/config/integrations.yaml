@@ -1,0 +1,109 @@
+# Integrations configuration.
+#
+# >>> START HERE: this file is the main place you wire Jarvis to your own world.
+# Every block below is a TEMPLATE. Search for "CUSTOMIZE" and replace the
+# placeholder values (<...>) with yours. See GETTING-STARTED.md for the full
+# customization checklist. All integrations are read-only unless noted.
+
+# Memory retention policy.
+#
+# `ttl_days` is the default time-to-live applied to entries that mark themselves
+# as ephemeral (detail-pass extractions, RSS-fetched knowledge, anything that
+# should not accumulate forever). Entries with an explicit `ttl_days` override
+# this default. Entries without a `ttl_days` field are NOT subject to TTL pruning.
+# Cleanup runs as part of the `memory_consolidation` routine.
+memory:
+  ttl_days: 30
+  # CUSTOMIZE: NAS mount path for the cold Parquet archive, e.g. after mounting
+  # //<nas-ip>/home at /Volumes/home. archive_to_cold() skips silently when this
+  # path does not exist or is not mounted, so it is safe to leave as-is.
+  cold_archive_path: "~/mnt/jarvis/cold-archive"
+
+# Calendar access via CalDAV. All calendars are read by default.
+calendar:
+  # CUSTOMIZE: add calendar names you want Jarvis to ignore (noisy team or
+  # birthday calendars, etc.).
+  exclude_calendar_names: []
+
+# Spotlight full-text search via mdfind.
+spotlight:
+  # CUSTOMIZE: the folders Jarvis is allowed to search.
+  roots:
+    - "~/Documents"
+    - "~/Downloads"
+    - "~/Library/Mobile Documents/com~apple~CloudDocs"
+  nas_roots: []
+  timeout_seconds: 10
+  max_results: 20
+
+# Mail reading.
+#
+# The mail-reading capability is `scripts/mail-check.py` (deployed to ~/bin/
+# mail-check), invoked by the Chief of Communications agent on the comms_pulse
+# routine. It covers Gmail + iCloud over IMAP. Credentials live in
+# ~/.jarvis-mail-creds (NOT in this file). This block is documentation-only:
+# it advertises the integration so patrol routines do not flag mail as missing.
+mail:
+  implementation: scripts/mail-check.py
+  implementation_owner: chief-of-communications agent (via comms_pulse routine)
+  credentials_file: ~/.jarvis-mail-creds
+  sources: [icloud, gmail]
+  # CUSTOMIZE: senders whose mail should always be weighted as important.
+  # Leave empty, or add addresses like: contact@example.com
+  high_weight_senders: []
+
+cloudflare:
+  # CUSTOMIZE: the Cloudflare zones you want Jarvis to watch. Remove this block
+  # entirely if you do not use Cloudflare.
+  zones:
+    - <your-domain>
+
+unifi:
+  # CUSTOMIZE: your UniFi controller IP (UDM/UDM-SE). Remove this block if you
+  # do not run UniFi.
+  controller_ip: "<router-ip>"
+  watch_device_health: true
+  watch_new_clients: true
+
+# Webhook receiver -- lightweight HTTP listener for real-time UniFi push events.
+# Default port 8765. Critical events (IDS alert, WAN down) trigger infra_watch.
+#
+# UniFi setup (UniFi OS 4.x / Network App 9.x): Logs -> Alarm Manager ->
+# Create Alarm. Each webhook is scoped to a single trigger category, so create
+# one per trigger type, all pointing at the same URL:
+#   http://<mac-mini-ip>:8765/webhook/unifi
+webhooks:
+  enabled: true
+  port: 8765
+  # token is read from UNIFI_WEBHOOK_TOKEN env var -- do not put it here
+
+# iMessage and SMS inbound monitoring via launchd WatchPaths + chat.db.
+# Token is read from IMESSAGE_WEBHOOK_TOKEN env var -- do not put it here.
+imessage:
+  enabled: true
+  include_sms: true
+  # CUSTOMIZE: phone numbers or Apple ID emails for immediate escalation.
+  urgent_senders: []
+  skip_group_chats: true
+
+# Safari ambient watcher (runs on hosts where Safari is used, not on the Mini).
+safari:
+  enabled: true
+
+# Discord bot for the CI/CD approval loop and proactive delivery.
+# Channel/user IDs are NOT secrets (Discord IDs are public). Credentials
+# (webhook URLs, bot token) live in macOS Keychain -- see the *_keychain_service
+# names below. Run scripts/setup-discord-bot.sh to populate the IDs.
+discord:
+  # CUSTOMIZE: your Discord IDs. In Discord, enable Developer Mode, then
+  # right-click a channel/user -> "Copy ID".
+  channel_id: "<discord-chat-channel-id>"
+  owner_user_id: "<discord-owner-user-id>"
+  webhook_keychain_service: "jarvis-discord-webhook"
+  bot_token_keychain_service: "jarvis-discord-bot-token"
+  heartbeat_file: "~/.jarvis/discord-bot.heartbeat"
+  digest_quiet_minutes: 30
+  approval_expire_hours: 24
+  proactive_channel_id: "<discord-proactive-channel-id>"
+  proactive_webhook_keychain_service: "jarvis-discord-proactive-webhook"
+  chat_webhook_keychain_service: "jarvis-discord-chat-webhook"

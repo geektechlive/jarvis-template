@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.dsswift.ion</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/<username>/Jarvis/scripts/ion-serve.sh</string>
+    </array>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/opt/homebrew/bin:/Users/<username>/bin:/Users/<username>/.local/bin</string>
+        <key>HOME</key>
+        <string>/Users/<username></string>
+        <!-- Headless Claude CLI tool-search keeps MCP (extension) tools out of the
+             model's upfront tool list, so Jarvis cannot see its own registered
+             tools. Load all tool defs upfront. See docs/ion-clibackend-tooling-issues.md
+             (#3) and dsswift/ion#182; remove once the engine sets this itself. -->
+        <key>ENABLE_TOOL_SEARCH</key>
+        <string>false</string>
+        <key>ION_SOCKET_PATH</key>
+        <string>0.0.0.0:21017</string>
+        <key>RELAY_API_KEY</key>
+        <string>RELAY_API_KEY_PLACEHOLDER</string>
+        <key>RELAY_PORT</key>
+        <string>8443</string>
+        <key>IMESSAGE_WEBHOOK_TOKEN</key>
+        <string>IMESSAGE_WEBHOOK_TOKEN_PLACEHOLDER</string>
+        <key>OPENROUTER_API_KEY</key>
+        <string>OPENROUTER_API_KEY_PLACEHOLDER</string>
+    </dict>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <!-- Override launchd's 10s default. If ion-serve.sh exits within
+         10s (binary missing, socket bind failure, extension load error),
+         the default would refuse to relaunch and the daemon stays silently
+         down. 30s gives crash-restart enough headroom to be deliberate. -->
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>/Users/<username>/Jarvis/logs/ion.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/<username>/Jarvis/logs/ion.error.log</string>
+</dict>
+</plist>

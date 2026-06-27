@@ -1,0 +1,28 @@
+# RSS feed subscriptions for News Desk and on-demand news queries.
+# Add/remove feeds here; rss_fetch routine picks them up automatically.
+feeds:
+  - id: hn_ai
+    url: "https://hnrss.org/newest?q=AI+LLM+claude+anthropic&count=20"
+    category: technology
+    signal: high
+    description: "Hacker News: AI/LLM topics"
+  - id: techcrunch_ai
+    url: "https://techcrunch.com/tag/artificial-intelligence/feed/"
+    category: technology
+    signal: medium
+    description: "TechCrunch AI"
+  - id: the_verge
+    url: "https://www.theverge.com/rss/index.xml"
+    category: technology
+    signal: medium
+    description: "The Verge"
+  - id: auto_news
+    url: "https://example.com/automotive-feed"
+    category: automotive
+    signal: medium
+    description: "Automotive news feed"
+  - id: 9to5mac
+    url: "https://9to5mac.com/feed/"
+    category: technology
+    signal: medium
+    description: "9to5Mac"

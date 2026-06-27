@@ -1,0 +1,8 @@
+[
+  {"role": "user", "content": "Still working on the <your-org> Astro migration"},
+  {"role": "assistant", "content": "How is it going? Did the content collections work?"},
+  {"role": "user", "content": "Yes. Also I definitely want custom CSS, not utility frameworks"},
+  {"role": "assistant", "content": "Understood — custom CSS only, consistent with your preference."},
+  {"role": "user", "content": "Make sure uv is always used for Python package management on the Mini"},
+  {"role": "assistant", "content": "Will do — uv for all Python dependency management."}
+]
