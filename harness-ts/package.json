@@ -19,7 +19,7 @@
     "better-sqlite3": "^12.10.0",
     "chrono-node": "^2.7.0",
     "discord.js": "^14.26.4",
-    "hono": "^4.12.23",
+    "hono": "^4.12.31",
     "js-yaml": "^4.2.0",
     "rss-parser": "^3.13.0"
   },
